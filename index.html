@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Management System</title>
+    
+    <!-- Google Fonts & Material Symbols -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+    
+    <!-- Main Style -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Database Config -->
+    <script src="config.js" defer></script>
+    
+    <!-- Main Application Logic -->
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="logo-container">
+                <div class="logo-text">
+                    <span class="material-symbols-rounded logo-icon">token</span>
+                    EnterpriseHub
+                </div>
+            </div>
+            
+            <ul class="nav-links">
+                <li class="nav-item active" data-section="dashboard">
+                    <a href="#dashboard">
+                        <span class="material-symbols-rounded">dashboard</span>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item" data-section="employees">
+                    <a href="#employees">
+                        <span class="material-symbols-rounded">group</span>
+                        Employees
+                    </a>
+                </li>
+                <li class="nav-item" data-section="tasks">
+                    <a href="#tasks">
+                        <span class="material-symbols-rounded">format_list_bulleted</span>
+                        Tasks & Projects
+                    </a>
+                </li>
+                <li class="nav-item" data-section="departments">
+                    <a href="#departments">
+                        <span class="material-symbols-rounded">corporate_fare</span>
+                        Departments
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="sidebar-footer">
+                <p>EnterpriseHub v1.0.0</p>
+                <p>&copy; 2026 Corporation</p>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header Bar -->
+            <header class="top-header">
+                <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Sidebar">
+                    <span class="material-symbols-rounded">menu</span>
+                </button>
+                <div class="header-title-container">
+                    <h1 id="pageTitle">Dashboard</h1>
+                    <p id="pageSubtitle">Overview of corporate operations and metrics.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" id="refreshBtn">
+                        <span class="material-symbols-rounded">refresh</span>
+                        Sync
+                    </button>
+                    <button class="btn btn-primary" id="globalActionBtn">
+                        <span class="material-symbols-rounded">add</span>
+                        New Employee
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboardSection" class="content-section active">
+                <!-- Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="panel metric-card metric-blue">
+                        <div class="metric-icon-box">
+                            <span class="material-symbols-rounded">group</span>
+                        </div>
+                        <div class="metric-info">
+                            <span class="metric-label">Total Employees</span>
+                            <span class="metric-value" id="metricEmployees">0</span>
+                        </div>
+                    </div>
+                    <div class="panel metric-card metric-teal">
+                        <div class="metric-icon-box">
+                            <span class="material-symbols-rounded">assignment</span>
+                        </div>
+                        <div class="metric-info">
+                            <span class="metric-label">Active Tasks</span>
+                            <span class="metric-value" id="metricTasks">0</span>
+                        </div>
+                    </div>
+                    <div class="panel metric-card metric-amber">
+                        <div class="metric-icon-box">
+                            <span class="material-symbols-rounded">corporate_fare</span>
+                        </div>
+                        <div class="metric-info">
+                            <span class="metric-label">Departments</span>
+                            <span class="metric-value" id="metricDepartments">0</span>
+                        </div>
+                    </div>
+                    <div class="panel metric-card metric-pink">
+                        <div class="metric-icon-box">
+                            <span class="material-symbols-rounded">payments</span>
+                        </div>
+                        <div class="metric-info">
+                            <span class="metric-label">Total Payroll</span>
+                            <span class="metric-value" id="metricPayroll">$0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two Column Details -->
+                <div class="dashboard-grid">
+                    <!-- Recent Tasks list -->
+                    <div class="panel">
+                        <div class="table-header">
+                            <h2 class="table-title">Recent Tasks</h2>
+                            <button class="btn btn-secondary" onclick="switchSection('tasks')">View All</button>
+                        </div>
+                        <div class="table-container">
+                            <table class="custom-table" id="recentTasksTable">
+                                <thead>
+                                    <tr>
+                                        <th>Task</th>
+                                        <th>Assignee</th>
+                                        <th>Priority</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="4" class="empty-state">
+                                            <span class="material-symbols-rounded empty-state-icon">sync</span>
+                                            <div class="empty-state-title">Loading recent tasks...</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Top Performers/Employees -->
+                    <div class="panel">
+                        <div class="table-header">
+                            <h2 class="table-title">Recent Hires</h2>
+                        </div>
+                        <div class="table-container">
+                            <table class="custom-table" id="recentHiresTable">
+                                <thead>
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Joined</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="2" class="empty-state">
+                                            <span class="material-symbols-rounded empty-state-icon">sync</span>
+                                            <div class="empty-state-title">Loading hires...</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Employees Section -->
+            <section id="employeesSection" class="content-section">
+                <div class="panel">
+                    <div class="table-header">
+                        <h2 class="table-title">All Employees</h2>
+                        <div class="search-box">
+                            <span class="material-symbols-rounded">search</span>
+                            <input type="text" id="employeeSearchInput" placeholder="Search by name, role, email...">
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="custom-table" id="employeesTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Role & Dept</th>
+                                    <th>Status</th>
+                                    <th>Joined Date</th>
+                                    <th>Salary</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeesTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tasks Section -->
+            <section id="tasksSection" class="content-section">
+                <!-- Kanban Board -->
+                <div class="kanban-board">
+                    <!-- Column Todo -->
+                    <div class="kanban-column" id="col-Todo" data-status="Todo">
+                        <div class="kanban-column-title">
+                            <span class="column-name">
+                                <span class="material-symbols-rounded" style="color: var(--text-secondary)">circle</span>
+                                To Do
+                            </span>
+                            <span class="column-count" id="count-Todo">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cards-Todo" ondragover="allowDrop(event)" ondrop="dropTask(event)">
+                            <!-- Dynamic Cards -->
+                        </div>
+                    </div>
+                    
+                    <!-- Column In Progress -->
+                    <div class="kanban-column" id="col-Progress" data-status="In Progress">
+                        <div class="kanban-column-title">
+                            <span class="column-name">
+                                <span class="material-symbols-rounded" style="color: var(--secondary)">pending</span>
+                                In Progress
+                            </span>
+                            <span class="column-count" id="count-Progress">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cards-Progress" ondragover="allowDrop(event)" ondrop="dropTask(event)">
+                            <!-- Dynamic Cards -->
+                        </div>
+                    </div>
+
+                    <!-- Column In Review -->
+                    <div class="kanban-column" id="col-Review" data-status="In Review">
+                        <div class="kanban-column-title">
+                            <span class="column-name">
+                                <span class="material-symbols-rounded" style="color: var(--warning)">rate_review</span>
+                                In Review
+                            </span>
+                            <span class="column-count" id="count-Review">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cards-Review" ondragover="allowDrop(event)" ondrop="dropTask(event)">
+                            <!-- Dynamic Cards -->
+                        </div>
+                    </div>
+
+                    <!-- Column Done -->
+                    <div class="kanban-column" id="col-Done" data-status="Done">
+                        <div class="kanban-column-title">
+                            <span class="column-name">
+                                <span class="material-symbols-rounded" style="color: var(--success)">check_circle</span>
+                                Done
+                            </span>
+                            <span class="column-count" id="count-Done">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cards-Done" ondragover="allowDrop(event)" ondrop="dropTask(event)">
+                            <!-- Dynamic Cards -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Departments Section -->
+            <section id="departmentsSection" class="content-section">
+                <div class="dept-cards-grid" id="departmentsGrid">
+                    <!-- Populated dynamically -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Employee Modal -->
+    <div class="modal-overlay" id="employeeModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title" id="employeeModalTitle">Add New Employee</h3>
+                <button class="modal-close" onclick="closeModal('employeeModal')">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <form id="employeeForm">
+                <input type="hidden" id="employeeId">
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="empFirstName">First Name</label>
+                            <input class="form-input" type="text" id="empFirstName" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="empLastName">Last Name</label>
+                            <input class="form-input" type="text" id="empLastName" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="empEmail">Email</label>
+                        <input class="form-input" type="email" id="empEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="empRole">Role / Title</label>
+                        <input class="form-input" type="text" id="empRole" placeholder="e.g. Senior Backend Engineer" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="empDepartment">Department</label>
+                        <select class="form-input" id="empDepartment" required>
+                            <option value="">Select Department</option>
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="empSalary">Annual Salary ($)</label>
+                        <input class="form-input" type="number" id="empSalary" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="empStatus">Status</label>
+                        <select class="form-input" id="empStatus">
+                            <option value="Active">Active</option>
+                            <option value="On Leave">On Leave</option>
+                            <option value="Terminated">Terminated</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('employeeModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div class="modal-overlay" id="taskModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title" id="taskModalTitle">Create Task</h3>
+                <button class="modal-close" onclick="closeModal('taskModal')">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <form id="taskForm">
+                <input type="hidden" id="taskId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="taskTitle">Task Title</label>
+                        <input class="form-input" type="text" id="taskTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="taskDesc">Description</label>
+                        <textarea class="form-input" id="taskDesc" placeholder="Describe the task expectations..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="taskAssignee">Assign Employee</label>
+                        <select class="form-input" id="taskAssignee">
+                            <option value="">Unassigned</option>
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="taskPriority">Priority</label>
+                            <select class="form-input" id="taskPriority">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="taskStatus">Status</label>
+                            <select class="form-input" id="taskStatus">
+                                <option value="Todo">Todo</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="In Review">In Review</option>
+                                <option value="Done">Done</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="taskDueDate">Due Date</label>
+                        <input class="form-input" type="date" id="taskDueDate">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('taskModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Department Modal -->
+    <div class="modal-overlay" id="departmentModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title" id="departmentModalTitle">Add Department</h3>
+                <button class="modal-close" onclick="closeModal('departmentModal')">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <form id="departmentForm">
+                <input type="hidden" id="departmentId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="deptName">Department Name</label>
+                        <input class="form-input" type="text" id="deptName" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="deptManager">Manager Name</label>
+                        <input class="form-input" type="text" id="deptManager" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="deptBudget">Budget ($)</label>
+                        <input class="form-input" type="number" id="deptBudget" min="0" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('departmentModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Department</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Overlay -->
+    <div class="toast-container" id="toastContainer"></div>
+</body>
+</html>
