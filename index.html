@@ -1,36 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Management System</title>
-    
+    <title>Enterprise Asset & Maintenance Management System</title>
+
     <!-- Google Fonts & Material Symbols -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
-    
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+
     <!-- Main Style -->
     <link rel="stylesheet" href="style.css">
-    
+
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
     <!-- Database Config -->
     <script src="config.js" defer></script>
-    
+
     <!-- Main Application Logic -->
     <script src="app.js" defer></script>
 </head>
+
 <body>
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
             <div class="logo-container">
                 <div class="logo-text">
-                    <span class="material-symbols-rounded logo-icon">token</span>
-                    EnterpriseHub
+                    <span class="material-symbols-rounded logo-icon">precision_manufacturing</span>
+                    iAssetOne
                 </div>
             </div>
-            
+
             <ul class="nav-links">
                 <li class="nav-item active" data-section="dashboard">
                     <a href="#dashboard">
@@ -38,29 +41,41 @@
                         Dashboard
                     </a>
                 </li>
-                <li class="nav-item" data-section="employees">
-                    <a href="#employees">
-                        <span class="material-symbols-rounded">group</span>
-                        Employees
+                <li class="nav-item" data-section="assets">
+                    <a href="#assets">
+                        <span class="material-symbols-rounded">category</span>
+                        Assets Directory
                     </a>
                 </li>
-                <li class="nav-item" data-section="tasks">
-                    <a href="#tasks">
-                        <span class="material-symbols-rounded">format_list_bulleted</span>
-                        Tasks & Projects
+                <li class="nav-item" data-section="maintenance">
+                    <a href="#maintenance">
+                        <span class="material-symbols-rounded">build</span>
+                        Maintenance
                     </a>
                 </li>
-                <li class="nav-item" data-section="departments">
-                    <a href="#departments">
-                        <span class="material-symbols-rounded">corporate_fare</span>
-                        Departments
+                <li class="nav-item" data-section="vendors">
+                    <a href="#vendors">
+                        <span class="material-symbols-rounded">handshake</span>
+                        Vendors & AMC
+                    </a>
+                </li>
+                <li class="nav-item" data-section="inventory">
+                    <a href="#inventory">
+                        <span class="material-symbols-rounded">inventory_2</span>
+                        Spare Parts
+                    </a>
+                </li>
+                <li class="nav-item" data-section="reports">
+                    <a href="#reports">
+                        <span class="material-symbols-rounded">monitoring</span>
+                        Reports
                     </a>
                 </li>
             </ul>
-            
+
             <div class="sidebar-footer">
-                <p>EnterpriseHub v1.0.0</p>
-                <p>&copy; 2026 Corporation</p>
+                <p>AssetFlow Suite v1.1</p>
+                <p>&copy; 2026 Team 1 Enterprise</p>
             </div>
         </aside>
 
@@ -73,7 +88,7 @@
                 </button>
                 <div class="header-title-container">
                     <h1 id="pageTitle">Dashboard</h1>
-                    <p id="pageSubtitle">Overview of corporate operations and metrics.</p>
+                    <p id="pageSubtitle">Overview of enterprise assets, work tickets, and stock warnings.</p>
                 </div>
                 <div class="header-actions">
                     <button class="btn btn-secondary" id="refreshBtn">
@@ -82,7 +97,7 @@
                     </button>
                     <button class="btn btn-primary" id="globalActionBtn">
                         <span class="material-symbols-rounded">add</span>
-                        New Employee
+                        Register Asset
                     </button>
                 </div>
             </header>
@@ -93,57 +108,57 @@
                 <div class="metrics-grid">
                     <div class="panel metric-card metric-blue">
                         <div class="metric-icon-box">
-                            <span class="material-symbols-rounded">group</span>
+                            <span class="material-symbols-rounded">home_repair_service</span>
                         </div>
                         <div class="metric-info">
-                            <span class="metric-label">Total Employees</span>
-                            <span class="metric-value" id="metricEmployees">0</span>
+                            <span class="metric-label">Total Assets</span>
+                            <span class="metric-value" id="metricAssets">0</span>
                         </div>
                     </div>
                     <div class="panel metric-card metric-teal">
                         <div class="metric-icon-box">
-                            <span class="material-symbols-rounded">assignment</span>
+                            <span class="material-symbols-rounded">pending_actions</span>
                         </div>
                         <div class="metric-info">
-                            <span class="metric-label">Active Tasks</span>
-                            <span class="metric-value" id="metricTasks">0</span>
-                        </div>
-                    </div>
-                    <div class="panel metric-card metric-amber">
-                        <div class="metric-icon-box">
-                            <span class="material-symbols-rounded">corporate_fare</span>
-                        </div>
-                        <div class="metric-info">
-                            <span class="metric-label">Departments</span>
-                            <span class="metric-value" id="metricDepartments">0</span>
+                            <span class="metric-label">Pending Tickets</span>
+                            <span class="metric-value" id="metricPendingTickets">0</span>
                         </div>
                     </div>
                     <div class="panel metric-card metric-pink">
                         <div class="metric-icon-box">
+                            <span class="material-symbols-rounded">warning</span>
+                        </div>
+                        <div class="metric-info">
+                            <span class="metric-label">Low Stock Parts</span>
+                            <span class="metric-value" id="metricLowStock">0</span>
+                        </div>
+                    </div>
+                    <div class="panel metric-card metric-amber">
+                        <div class="metric-icon-box">
                             <span class="material-symbols-rounded">payments</span>
                         </div>
                         <div class="metric-info">
-                            <span class="metric-label">Total Payroll</span>
-                            <span class="metric-value" id="metricPayroll">$0</span>
+                            <span class="metric-label">Maintenance Cost</span>
+                            <span class="metric-value" id="metricTotalCost">₹0</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Two Column Details -->
                 <div class="dashboard-grid">
-                    <!-- Recent Tasks list -->
+                    <!-- Urgent / In Progress Tickets -->
                     <div class="panel">
                         <div class="table-header">
-                            <h2 class="table-title">Recent Tasks</h2>
-                            <button class="btn btn-secondary" onclick="switchSection('tasks')">View All</button>
+                            <h2 class="table-title">Active Maintenance Schedules</h2>
+                            <button class="btn btn-secondary" onclick="switchSection('maintenance')">View All</button>
                         </div>
                         <div class="table-container">
-                            <table class="custom-table" id="recentTasksTable">
+                            <table class="custom-table" id="dashboardTicketsTable">
                                 <thead>
                                     <tr>
-                                        <th>Task</th>
-                                        <th>Assignee</th>
-                                        <th>Priority</th>
+                                        <th>Asset</th>
+                                        <th>Type</th>
+                                        <th>Target Date</th>
                                         <th>Status</th>
                                     </tr>
                                 </thead>
@@ -151,7 +166,7 @@
                                     <tr>
                                         <td colspan="4" class="empty-state">
                                             <span class="material-symbols-rounded empty-state-icon">sync</span>
-                                            <div class="empty-state-title">Loading recent tasks...</div>
+                                            <div class="empty-state-title">Loading schedules...</div>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -159,24 +174,24 @@
                         </div>
                     </div>
 
-                    <!-- Top Performers/Employees -->
+                    <!-- Low Stock Alerts Panel -->
                     <div class="panel">
                         <div class="table-header">
-                            <h2 class="table-title">Recent Hires</h2>
+                            <h2 class="table-title">Parts to Reorder</h2>
                         </div>
                         <div class="table-container">
-                            <table class="custom-table" id="recentHiresTable">
+                            <table class="custom-table" id="dashboardStockTable">
                                 <thead>
                                     <tr>
-                                        <th>Employee</th>
-                                        <th>Joined</th>
+                                        <th>Part Name</th>
+                                        <th>Stock</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
                                         <td colspan="2" class="empty-state">
                                             <span class="material-symbols-rounded empty-state-icon">sync</span>
-                                            <div class="empty-state-title">Loading hires...</div>
+                                            <div class="empty-state-title">Checking inventory...</div>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -186,29 +201,47 @@
                 </div>
             </section>
 
-            <!-- Employees Section -->
-            <section id="employeesSection" class="content-section">
+            <!-- Assets Section -->
+            <section id="assetsSection" class="content-section">
                 <div class="panel">
                     <div class="table-header">
-                        <h2 class="table-title">All Employees</h2>
-                        <div class="search-box">
-                            <span class="material-symbols-rounded">search</span>
-                            <input type="text" id="employeeSearchInput" placeholder="Search by name, role, email...">
+                        <h2 class="table-title">Registered Assets</h2>
+                        <div class="table-filters">
+                            <select id="assetCategoryFilter" class="filter-select">
+                                <option value="">All Categories</option>
+                                <option value="Equipment">Equipment</option>
+                                <option value="Office Asset">Office Asset</option>
+                                <option value="Vehicle">Vehicle</option>
+                                <option value="Facilities">Facilities</option>
+                            </select>
+                            <select id="assetStatusFilter" class="filter-select">
+                                <option value="">All Statuses</option>
+                                <option value="Operational">Operational</option>
+                                <option value="Under Maintenance">Under Maintenance</option>
+                                <option value="Broken">Broken</option>
+                                <option value="Retired">Retired</option>
+                            </select>
+                            <div class="search-box">
+                                <span class="material-symbols-rounded">search</span>
+                                <input type="text" id="assetSearchInput" placeholder="Search assets...">
+                            </div>
                         </div>
                     </div>
                     <div class="table-container">
-                        <table class="custom-table" id="employeesTable">
+                        <table class="custom-table" id="assetsTable">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Role & Dept</th>
+                                    <th>Asset Name</th>
+                                    <th>Category</th>
+                                    <th>Serial No.</th>
+                                    <th>Location</th>
                                     <th>Status</th>
-                                    <th>Joined Date</th>
-                                    <th>Salary</th>
+                                    <th>Team Owner</th>
+                                    <th>Purchase Date</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="employeesTableBody">
+                            <tbody id="assetsTableBody">
                                 <!-- Populated dynamically -->
                             </tbody>
                         </table>
@@ -216,24 +249,26 @@
                 </div>
             </section>
 
-            <!-- Tasks Section -->
-            <section id="tasksSection" class="content-section">
+            <!-- Maintenance Section -->
+            <section id="maintenanceSection" class="content-section">
                 <!-- Kanban Board -->
                 <div class="kanban-board">
-                    <!-- Column Todo -->
-                    <div class="kanban-column" id="col-Todo" data-status="Todo">
+                    <!-- Column Scheduled -->
+                    <div class="kanban-column" id="col-Scheduled" data-status="Scheduled">
                         <div class="kanban-column-title">
                             <span class="column-name">
-                                <span class="material-symbols-rounded" style="color: var(--text-secondary)">circle</span>
-                                To Do
+                                <span class="material-symbols-rounded"
+                                    style="color: var(--warning)">calendar_today</span>
+                                Scheduled
                             </span>
-                            <span class="column-count" id="count-Todo">0</span>
+                            <span class="column-count" id="count-Scheduled">0</span>
                         </div>
-                        <div class="kanban-cards" id="cards-Todo" ondragover="allowDrop(event)" ondrop="dropTask(event)">
+                        <div class="kanban-cards" id="cards-Scheduled" ondragover="allowDrop(event)"
+                            ondrop="dropTicket(event)">
                             <!-- Dynamic Cards -->
                         </div>
                     </div>
-                    
+
                     <!-- Column In Progress -->
                     <div class="kanban-column" id="col-Progress" data-status="In Progress">
                         <div class="kanban-column-title">
@@ -243,7 +278,8 @@
                             </span>
                             <span class="column-count" id="count-Progress">0</span>
                         </div>
-                        <div class="kanban-cards" id="cards-Progress" ondragover="allowDrop(event)" ondrop="dropTask(event)">
+                        <div class="kanban-cards" id="cards-Progress" ondragover="allowDrop(event)"
+                            ondrop="dropTicket(event)">
                             <!-- Dynamic Cards -->
                         </div>
                     </div>
@@ -252,187 +288,383 @@
                     <div class="kanban-column" id="col-Review" data-status="In Review">
                         <div class="kanban-column-title">
                             <span class="column-name">
-                                <span class="material-symbols-rounded" style="color: var(--warning)">rate_review</span>
+                                <span class="material-symbols-rounded" style="color: var(--primary)">rate_review</span>
                                 In Review
                             </span>
                             <span class="column-count" id="count-Review">0</span>
                         </div>
-                        <div class="kanban-cards" id="cards-Review" ondragover="allowDrop(event)" ondrop="dropTask(event)">
+                        <div class="kanban-cards" id="cards-Review" ondragover="allowDrop(event)"
+                            ondrop="dropTicket(event)">
                             <!-- Dynamic Cards -->
                         </div>
                     </div>
 
-                    <!-- Column Done -->
-                    <div class="kanban-column" id="col-Done" data-status="Done">
+                    <!-- Column Completed -->
+                    <div class="kanban-column" id="col-Completed" data-status="Completed">
                         <div class="kanban-column-title">
                             <span class="column-name">
                                 <span class="material-symbols-rounded" style="color: var(--success)">check_circle</span>
-                                Done
+                                Completed
                             </span>
-                            <span class="column-count" id="count-Done">0</span>
+                            <span class="column-count" id="count-Completed">0</span>
                         </div>
-                        <div class="kanban-cards" id="cards-Done" ondragover="allowDrop(event)" ondrop="dropTask(event)">
+                        <div class="kanban-cards" id="cards-Completed" ondragover="allowDrop(event)"
+                            ondrop="dropTicket(event)">
                             <!-- Dynamic Cards -->
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Departments Section -->
-            <section id="departmentsSection" class="content-section">
-                <div class="dept-cards-grid" id="departmentsGrid">
-                    <!-- Populated dynamically -->
+            <!-- Vendors Section -->
+            <section id="vendorsSection" class="content-section">
+                <div class="panel">
+                    <div class="table-header">
+                        <h2 class="table-title">Service Providers & AMC Contracts</h2>
+                    </div>
+                    <div class="table-container">
+                        <table class="custom-table" id="vendorsTable">
+                            <thead>
+                                <tr>
+                                    <th>Provider Name</th>
+                                    <th>Contact Person</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>AMC Contract Term</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vendorsTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Inventory Section -->
+            <section id="inventorySection" class="content-section">
+                <div class="panel">
+                    <div class="table-header">
+                        <h2 class="table-title">Spare Parts stock</h2>
+                    </div>
+                    <div class="table-container">
+                        <table class="custom-table" id="inventoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Part Name</th>
+                                    <th>Stock Level</th>
+                                    <th>Reorder Alert Level</th>
+                                    <th>Unit Cost</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reportsSection" class="content-section">
+                <div class="reports-layout">
+                    <!-- Utilization Panel -->
+                    <div class="panel chart-panel">
+                        <div class="chart-title">
+                            <span class="material-symbols-rounded" style="color: var(--secondary)">assessment</span>
+                            Asset Status Distribution
+                        </div>
+                        <div class="progress-metric-list" id="assetStatusBreakdown">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Maintenance Costs Panel -->
+                    <div class="panel chart-panel">
+                        <div class="chart-title">
+                            <span class="material-symbols-rounded" style="color: var(--primary)">pie_chart</span>
+                            Maintenance Cost Breakdown
+                        </div>
+                        <div class="cost-distribution-grid" id="costBreakdownGrid">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Downtime Hours Reports -->
+                    <div class="panel chart-panel">
+                        <div class="chart-title">
+                            <span class="material-symbols-rounded"
+                                style="color: var(--danger)">hourglass_disabled</span>
+                            Accumulative Downtime Metrics
+                        </div>
+                        <div
+                            style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 180px; gap: 10px;">
+                            <div style="font-size: 3.5rem; font-family: var(--font-heading); font-weight: 700; color: var(--danger);"
+                                id="totalDowntimeVal">0 hrs</div>
+                            <div
+                                style="font-size: 0.85rem; color: var(--text-secondary); text-align: center; max-width: 200px;">
+                                Total asset operational downtime caused by maintenance interventions.
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>
     </div>
 
     <!-- Modals -->
-    <!-- Employee Modal -->
-    <div class="modal-overlay" id="employeeModal">
+    <!-- Asset Modal -->
+    <div class="modal-overlay" id="assetModal">
         <div class="modal-box">
             <div class="modal-header">
-                <h3 class="modal-title" id="employeeModalTitle">Add New Employee</h3>
-                <button class="modal-close" onclick="closeModal('employeeModal')">
+                <h3 class="modal-title" id="assetModalTitle">Register New Asset</h3>
+                <button class="modal-close" onclick="closeModal('assetModal')">
                     <span class="material-symbols-rounded">close</span>
                 </button>
             </div>
-            <form id="employeeForm">
-                <input type="hidden" id="employeeId">
+            <form id="assetForm">
+                <input type="hidden" id="assetId">
                 <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="assetName">Asset Name</label>
+                        <input class="form-input" type="text" id="assetName" required>
+                    </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group">
-                            <label class="form-label" for="empFirstName">First Name</label>
-                            <input class="form-input" type="text" id="empFirstName" required>
+                            <label class="form-label" for="assetCategory">Category</label>
+                            <select class="form-input" id="assetCategory" required>
+                                <option value="Equipment">Equipment</option>
+                                <option value="Office Asset">Office Asset</option>
+                                <option value="Vehicle">Vehicle</option>
+                                <option value="Facilities">Facilities</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="empLastName">Last Name</label>
-                            <input class="form-input" type="text" id="empLastName" required>
+                            <label class="form-label" for="assetSerial">Serial Number</label>
+                            <input class="form-input" type="text" id="assetSerial">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="assetStatus">Operational Status</label>
+                            <select class="form-input" id="assetStatus">
+                                <option value="Operational">Operational</option>
+                                <option value="Under Maintenance">Under Maintenance</option>
+                                <option value="Broken">Broken</option>
+                                <option value="Retired">Retired</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="assetOwner">Ownership Team</label>
+                            <select class="form-input" id="assetOwner" required>
+                                <option value="Operations Team">Operations Team</option>
+                                <option value="Facility Team">Facility Team</option>
+                                <option value="Maintenance Team">Maintenance Team</option>
+                                <option value="Finance Team">Finance Team</option>
+                            </select>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="empEmail">Email</label>
-                        <input class="form-input" type="email" id="empEmail" required>
+                        <label class="form-label" for="assetLocation">Location / Installation Area</label>
+                        <input class="form-input" type="text" id="assetLocation" required>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="assetCost">Purchase Cost (₹)</label>
+                            <input class="form-input" type="number" id="assetCost" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="assetPurchaseDate">Purchase Date</label>
+                            <input class="form-input" type="date" id="assetPurchaseDate" required>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="empRole">Role / Title</label>
-                        <input class="form-input" type="text" id="empRole" placeholder="e.g. Senior Backend Engineer" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="empDepartment">Department</label>
-                        <select class="form-input" id="empDepartment" required>
-                            <option value="">Select Department</option>
-                            <!-- Populated dynamically -->
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="empSalary">Annual Salary ($)</label>
-                        <input class="form-input" type="number" id="empSalary" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="empStatus">Status</label>
-                        <select class="form-input" id="empStatus">
-                            <option value="Active">Active</option>
-                            <option value="On Leave">On Leave</option>
-                            <option value="Terminated">Terminated</option>
-                        </select>
+                        <label class="form-label" for="assetWarranty">Warranty Expiration Date</label>
+                        <input class="form-input" type="date" id="assetWarranty">
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('employeeModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Employee</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('assetModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Asset</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Task Modal -->
-    <div class="modal-overlay" id="taskModal">
+    <!-- Maintenance Ticket Modal -->
+    <div class="modal-overlay" id="maintenanceModal">
         <div class="modal-box">
             <div class="modal-header">
-                <h3 class="modal-title" id="taskModalTitle">Create Task</h3>
-                <button class="modal-close" onclick="closeModal('taskModal')">
+                <h3 class="modal-title" id="maintenanceModalTitle">Schedule Maintenance</h3>
+                <button class="modal-close" onclick="closeModal('maintenanceModal')">
                     <span class="material-symbols-rounded">close</span>
                 </button>
             </div>
-            <form id="taskForm">
-                <input type="hidden" id="taskId">
+            <form id="maintenanceForm">
+                <input type="hidden" id="maintenanceId">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label class="form-label" for="taskTitle">Task Title</label>
-                        <input class="form-input" type="text" id="taskTitle" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="taskDesc">Description</label>
-                        <textarea class="form-input" id="taskDesc" placeholder="Describe the task expectations..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="taskAssignee">Assign Employee</label>
-                        <select class="form-input" id="taskAssignee">
-                            <option value="">Unassigned</option>
+                        <label class="form-label" for="maintAsset">Select Asset</label>
+                        <select class="form-input" id="maintAsset" required>
                             <!-- Populated dynamically -->
                         </select>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group">
-                            <label class="form-label" for="taskPriority">Priority</label>
-                            <select class="form-input" id="taskPriority">
-                                <option value="Low">Low</option>
-                                <option value="Medium" selected>Medium</option>
-                                <option value="High">High</option>
+                            <label class="form-label" for="maintType">Maintenance Type</label>
+                            <select class="form-input" id="maintType" required>
+                                <option value="Preventive">Preventive</option>
+                                <option value="Corrective">Corrective</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="taskStatus">Status</label>
-                            <select class="form-input" id="taskStatus">
-                                <option value="Todo">Todo</option>
-                                <option value="In Progress">In Progress</option>
-                                <option value="In Review">In Review</option>
-                                <option value="Done">Done</option>
+                            <label class="form-label" for="maintTeam">Assigned Team</label>
+                            <select class="form-input" id="maintTeam" required>
+                                <option value="Maintenance Team">Maintenance Team</option>
+                                <option value="Facility Team">Facility Team</option>
                             </select>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="taskDueDate">Due Date</label>
-                        <input class="form-input" type="date" id="taskDueDate">
+                        <label class="form-label" for="maintDesc">Description of Issues / Task</label>
+                        <textarea class="form-input" id="maintDesc" required></textarea>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="maintScheduledDate">Scheduled Date</label>
+                            <input class="form-input" type="date" id="maintScheduledDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="maintCompletedDate">Completed Date</label>
+                            <input class="form-input" type="date" id="maintCompletedDate">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="maintCost">Invoice Cost (₹)</label>
+                            <input class="form-input" type="number" id="maintCost" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="maintDowntime">Asset Downtime (hours)</label>
+                            <input class="form-input" type="number" id="maintDowntime" min="0" value="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="maintStatus">Status</label>
+                        <select class="form-input" id="maintStatus">
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="In Review">In Review</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('taskModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Task</button>
+                    <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('maintenanceModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Work Order</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Department Modal -->
-    <div class="modal-overlay" id="departmentModal">
+    <!-- Vendor Modal -->
+    <div class="modal-overlay" id="vendorModal">
         <div class="modal-box">
             <div class="modal-header">
-                <h3 class="modal-title" id="departmentModalTitle">Add Department</h3>
-                <button class="modal-close" onclick="closeModal('departmentModal')">
+                <h3 class="modal-title" id="vendorModalTitle">Add Vendor Contract</h3>
+                <button class="modal-close" onclick="closeModal('vendorModal')">
                     <span class="material-symbols-rounded">close</span>
                 </button>
             </div>
-            <form id="departmentForm">
-                <input type="hidden" id="departmentId">
+            <form id="vendorForm">
+                <input type="hidden" id="vendorId">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label class="form-label" for="deptName">Department Name</label>
-                        <input class="form-input" type="text" id="deptName" required>
+                        <label class="form-label" for="vendorName">Company / Provider Name</label>
+                        <input class="form-input" type="text" id="vendorName" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="deptManager">Manager Name</label>
-                        <input class="form-input" type="text" id="deptManager" required>
+                        <label class="form-label" for="vendorContact">Contact Person</label>
+                        <input class="form-input" type="text" id="vendorContact" required>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label" for="deptBudget">Budget ($)</label>
-                        <input class="form-input" type="number" id="deptBudget" min="0" required>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="vendorEmail">Email Address</label>
+                            <input class="form-input" type="email" id="vendorEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="vendorPhone">Phone Number</label>
+                            <input class="form-input" type="text" id="vendorPhone" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="vendorAmcStart">AMC Start Date</label>
+                            <input class="form-input" type="date" id="vendorAmcStart">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="vendorAmcEnd">AMC End Date</label>
+                            <input class="form-input" type="date" id="vendorAmcEnd">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('departmentModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Department</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('vendorModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Vendor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Inventory Modal -->
+    <div class="modal-overlay" id="inventoryModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title" id="inventoryModalTitle">Add Spare Part</h3>
+                <button class="modal-close" onclick="closeModal('inventoryModal')">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <form id="inventoryForm">
+                <input type="hidden" id="inventoryId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="partName">Part Name / Item Code</label>
+                        <input class="form-input" type="text" id="partName" required>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="partQty">Initial Stock Qty</label>
+                            <input class="form-input" type="number" id="partQty" min="0" value="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="partReorder">Reorder Threshold Qty</label>
+                            <input class="form-input" type="number" id="partReorder" min="0" value="5" required>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label" for="partCost">Unit Purchase Cost (₹)</label>
+                            <input class="form-input" type="number" id="partCost" min="0" step="0.01" value="0.00"
+                                required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="partLocation">Warehouse Location</label>
+                            <input class="form-input" type="text" id="partLocation" placeholder="e.g. Aisle B-2"
+                                required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('inventoryModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Part</button>
                 </div>
             </form>
         </div>
@@ -441,4 +673,5 @@
     <!-- Toast Notification Overlay -->
     <div class="toast-container" id="toastContainer"></div>
 </body>
+
 </html>
