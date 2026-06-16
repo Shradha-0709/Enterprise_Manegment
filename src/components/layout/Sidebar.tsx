@@ -36,8 +36,8 @@ export default function Sidebar() {
       </ul>
 
       <div className="sidebar-footer">
-        <p>AssetFlow Suite v1.1</p>
-        <p>&copy; 2026 Team 1 Enterprise</p>
+        <p>iAssetOne v0.1</p>
+        <p>&copy; 2026 Team Ideassion</p>
       </div>
     </aside>
   );

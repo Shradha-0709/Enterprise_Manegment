@@ -1,4 +1,87 @@
+import React, { useState } from 'react';
+
+type Priority = 'low' | 'medium' | 'high';
+type Status = 'Scheduled' | 'In Progress' | 'In Review' | 'Completed';
+
+interface Task {
+  id: string;
+  title: string;
+  priority: Priority;
+  status: Status;
+  assignee: {
+    name: string;
+    avatar: string;
+  };
+  dueDate: string;
+}
+
+const MOCK_TASKS: Task[] = [
+  {
+    id: 'WO-2041',
+    title: 'HVAC Filter Replacement in Building A',
+    priority: 'medium',
+    status: 'Scheduled',
+    assignee: { name: 'Alex Johnson', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026024d' },
+    dueDate: 'Today',
+  },
+  {
+    id: 'WO-2042',
+    title: 'Elevator Maintenance (Annual)',
+    priority: 'high',
+    status: 'Scheduled',
+    assignee: { name: 'Sarah Smith', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
+    dueDate: 'Tomorrow',
+  },
+  {
+    id: 'WO-2039',
+    title: 'Fix Leaking Pipe in Restroom 2',
+    priority: 'high',
+    status: 'In Progress',
+    assignee: { name: 'Mike Davis', avatar: 'https://i.pravatar.cc/150?u=a04258114e29026702d' },
+    dueDate: 'Today',
+  },
+  {
+    id: 'WO-2035',
+    title: 'Update Firmware on Security Cameras',
+    priority: 'low',
+    status: 'In Review',
+    assignee: { name: 'IT Support', avatar: 'https://i.pravatar.cc/150?u=a04258a2462d826712d' },
+    dueDate: 'Yesterday',
+  },
+  {
+    id: 'WO-2028',
+    title: 'Replace Fire Extinguishers on Floor 3',
+    priority: 'medium',
+    status: 'Completed',
+    assignee: { name: 'Safety Team', avatar: 'https://i.pravatar.cc/150?u=a048581f4e29026701d' },
+    dueDate: 'Last Week',
+  },
+];
+
 export default function MaintenancePage() {
+  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
+
+  const getTasksByStatus = (status: Status) => tasks.filter(t => t.status === status);
+
+  const renderCard = (task: Task) => (
+    <div key={task.id} className="kanban-card" draggable>
+      <div className="card-header">
+        <span className="card-id">{task.id}</span>
+        <span className={`card-priority priority-${task.priority}`}>
+          {task.priority.toUpperCase()}
+        </span>
+      </div>
+      <div className="card-title">{task.title}</div>
+      <div className="card-footer">
+        <div className="card-assignee">
+          <img src={task.assignee.avatar} alt={task.assignee.name} />
+          <span>{task.assignee.name}</span>
+        </div>
+        <div className="card-date">{task.dueDate}</div>
+      </div>
+    </div>
+  );
+
   return (
     <section id="maintenanceSection" className="content-section active">
       {/* Kanban Board */}
@@ -12,10 +95,10 @@ export default function MaintenancePage() {
               </span>
               Scheduled
             </span>
-            <span className="column-count" id="count-Scheduled">0</span>
+            <span className="column-count">{getTasksByStatus('Scheduled').length}</span>
           </div>
-          <div className="kanban-cards" id="cards-Scheduled">
-            {/* Dynamic Cards */}
+          <div className="kanban-cards">
+            {getTasksByStatus('Scheduled').map(renderCard)}
           </div>
         </div>
 
@@ -28,10 +111,10 @@ export default function MaintenancePage() {
               </span>
               In Progress
             </span>
-            <span className="column-count" id="count-Progress">0</span>
+            <span className="column-count">{getTasksByStatus('In Progress').length}</span>
           </div>
-          <div className="kanban-cards" id="cards-Progress">
-            {/* Dynamic Cards */}
+          <div className="kanban-cards">
+            {getTasksByStatus('In Progress').map(renderCard)}
           </div>
         </div>
 
@@ -44,10 +127,10 @@ export default function MaintenancePage() {
               </span>
               In Review
             </span>
-            <span className="column-count" id="count-Review">0</span>
+            <span className="column-count">{getTasksByStatus('In Review').length}</span>
           </div>
-          <div className="kanban-cards" id="cards-Review">
-            {/* Dynamic Cards */}
+          <div className="kanban-cards">
+            {getTasksByStatus('In Review').map(renderCard)}
           </div>
         </div>
 
@@ -60,10 +143,10 @@ export default function MaintenancePage() {
               </span>
               Completed
             </span>
-            <span className="column-count" id="count-Completed">0</span>
+            <span className="column-count">{getTasksByStatus('Completed').length}</span>
           </div>
-          <div className="kanban-cards" id="cards-Completed">
-            {/* Dynamic Cards */}
+          <div className="kanban-cards">
+            {getTasksByStatus('Completed').map(renderCard)}
           </div>
         </div>
       </div>
