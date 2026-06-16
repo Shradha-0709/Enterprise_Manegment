@@ -1,13 +1,14 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'react-router-dom';
 import { FormEvent } from 'react';
 
 export default function InventoryModal() {
-  const router = useRouter();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const closeModal = () => {
-    router.push('?', { scroll: false });
+    searchParams.delete('modal');
+    setSearchParams(searchParams);
   };
 
   const handleSubmit = (e: FormEvent) => {

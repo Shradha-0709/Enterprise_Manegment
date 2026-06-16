@@ -1,10 +1,7 @@
-'use client';
-
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function Sidebar() {
-  const pathname = usePathname();
+  const location = useLocation();
 
   const navLinks = [
     { name: 'Dashboard', path: '/', icon: 'dashboard' },
@@ -28,9 +25,9 @@ export default function Sidebar() {
         {navLinks.map((link) => (
           <li
             key={link.path}
-            className={`nav-item ${pathname === link.path ? 'active' : ''}`}
+            className={`nav-item ${location.pathname === link.path ? 'active' : ''}`}
           >
-            <Link href={link.path}>
+            <Link to={link.path}>
               <span className="material-symbols-rounded">{link.icon}</span>
               {link.name}
             </Link>

@@ -1,13 +1,11 @@
-'use client';
-
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'react-router-dom';
 import AssetModal from './AssetModal';
 import MaintenanceModal from './MaintenanceModal';
 import VendorModal from './VendorModal';
 import InventoryModal from './InventoryModal';
 
 export default function ModalManager() {
-  const searchParams = useSearchParams();
+  const [searchParams] = useSearchParams();
   const modal = searchParams.get('modal');
 
   return (

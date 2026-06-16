@@ -1,6 +1,4 @@
-'use client';
-
-import { usePathname, useRouter } from 'next/navigation';
+import { useLocation, useSearchParams } from 'react-router-dom';
 
 const routeMeta: Record<string, { title: string; subtitle: string; btnText: string; modalId: string }> = {
   '/': {
@@ -42,9 +40,9 @@ const routeMeta: Record<string, { title: string; subtitle: string; btnText: stri
 };
 
 export default function Header() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const meta = routeMeta[pathname] || routeMeta['/'];
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const meta = routeMeta[location.pathname] || routeMeta['/'];
 
   return (
     <header className="top-header">
@@ -64,7 +62,10 @@ export default function Header() {
           <button 
             className="btn btn-primary" 
             id="globalActionBtn"
-            onClick={() => router.push(`?modal=${meta.modalId}`, { scroll: false })}
+            onClick={() => {
+              searchParams.set('modal', meta.modalId);
+              setSearchParams(searchParams);
+            }}
           >
             <span className="material-symbols-rounded">add</span>
             {meta.btnText}
