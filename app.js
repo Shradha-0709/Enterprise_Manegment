@@ -1,8 +1,9 @@
 // State Management Cache
 let state = {
-    employees: [],
-    tasks: [],
-    departments: [],
+    assets: [],
+    maintenance: [],
+    vendors: [],
+    inventory: [],
     activeSection: 'dashboard'
 };
 
@@ -10,27 +11,39 @@ let state = {
 const sectionMeta = {
     dashboard: {
         title: 'Dashboard',
-        subtitle: 'Overview of corporate operations and metrics.',
-        btnText: 'New Employee',
-        action: () => openAddEmployeeModal()
+        subtitle: 'Overview of enterprise assets, work tickets, and stock warnings.',
+        btnText: 'Register Asset',
+        action: () => openAddAssetModal()
     },
-    employees: {
-        title: 'Employees',
-        subtitle: 'Manage company personnel directory and details.',
-        btnText: 'Add Employee',
-        action: () => openAddEmployeeModal()
+    assets: {
+        title: 'Assets Directory',
+        subtitle: 'Manage company assets, categories, and warranty records.',
+        btnText: 'Register Asset',
+        action: () => openAddAssetModal()
     },
-    tasks: {
-        title: 'Tasks & Projects',
-        subtitle: 'Track team activities, workflows, and task progress.',
-        btnText: 'Create Task',
-        action: () => openAddTaskModal()
+    maintenance: {
+        title: 'Maintenance Schedules',
+        subtitle: 'Schedule preventive maintenance and process corrective work tickets.',
+        btnText: 'Schedule Work',
+        action: () => openAddMaintenanceModal()
     },
-    departments: {
-        title: 'Departments',
-        subtitle: 'Manage department organizational units and budgets.',
-        btnText: 'New Department',
-        action: () => openAddDepartmentModal()
+    vendors: {
+        title: 'Vendor Directory & AMC',
+        subtitle: 'Manage service providers, contacts, and active AMC contract terms.',
+        btnText: 'Add Vendor',
+        action: () => openAddVendorModal()
+    },
+    inventory: {
+        title: 'Spare Parts Inventory',
+        subtitle: 'Monitor stock levels, warehouse locations, and reorder alerts.',
+        btnText: 'Add Spare Part',
+        action: () => openAddInventoryModal()
+    },
+    reports: {
+        title: 'Operations Analytics',
+        subtitle: 'View asset utilization metrics, total maintenance costs, and downtime summaries.',
+        btnText: '',
+        action: null
     }
 };
 
@@ -95,16 +108,21 @@ function setupEventListeners() {
         }
     });
 
-    // Employee Search Input
-    const empSearch = document.getElementById('employeeSearchInput');
-    if (empSearch) {
-        empSearch.addEventListener('input', renderEmployees);
-    }
+    // Search and Filters for Assets
+    const assetSearch = document.getElementById('assetSearchInput');
+    if (assetSearch) assetSearch.addEventListener('input', renderAssets);
+    
+    const catFilter = document.getElementById('assetCategoryFilter');
+    if (catFilter) catFilter.addEventListener('change', renderAssets);
+    
+    const statFilter = document.getElementById('assetStatusFilter');
+    if (statFilter) statFilter.addEventListener('change', renderAssets);
 
     // Modal forms submission
-    document.getElementById('employeeForm').addEventListener('submit', handleEmployeeSubmit);
-    document.getElementById('taskForm').addEventListener('submit', handleTaskSubmit);
-    document.getElementById('departmentForm').addEventListener('submit', handleDepartmentSubmit);
+    document.getElementById('assetForm').addEventListener('submit', handleAssetSubmit);
+    document.getElementById('maintenanceForm').addEventListener('submit', handleMaintenanceSubmit);
+    document.getElementById('vendorForm').addEventListener('submit', handleVendorSubmit);
+    document.getElementById('inventoryForm').addEventListener('submit', handleInventorySubmit);
 }
 
 // Router
@@ -162,33 +180,38 @@ async function syncAllData() {
     }
 
     try {
-        const [empRes, taskRes, deptRes] = await Promise.all([
-            window.supabaseClient.from('employees').select('*'),
-            window.supabaseClient.from('tasks').select('*'),
-            window.supabaseClient.from('departments').select('*')
+        const [assetsRes, maintRes, vendorsRes, invRes] = await Promise.all([
+            window.supabaseClient.from('assets').select('*'),
+            window.supabaseClient.from('maintenance_records').select('*'),
+            window.supabaseClient.from('vendors').select('*'),
+            window.supabaseClient.from('inventory').select('*')
         ]);
 
         // Check for common connection/schema errors
-        if (empRes.error && empRes.error.code === 'PGRST205') {
+        if (assetsRes.error && assetsRes.error.code === 'PGRST205') {
             displaySchemaSetupError();
             return;
         }
 
-        if (empRes.error) throw empRes.error;
-        if (taskRes.error) throw taskRes.error;
-        if (deptRes.error) throw deptRes.error;
+        if (assetsRes.error) throw assetsRes.error;
+        if (maintRes.error) throw maintRes.error;
+        if (vendorsRes.error) throw vendorsRes.error;
+        if (invRes.error) throw invRes.error;
 
-        state.employees = empRes.data || [];
-        state.tasks = taskRes.data || [];
-        state.departments = deptRes.data || [];
+        state.assets = assetsRes.data || [];
+        state.maintenance = maintRes.data || [];
+        state.vendors = vendorsRes.data || [];
+        state.inventory = invRes.data || [];
 
         // Redraw Views
         updateMetrics();
         populateFormSelectors();
         renderDashboard();
-        renderEmployees();
-        renderTasks();
-        renderDepartments();
+        renderAssets();
+        renderMaintenance();
+        renderVendors();
+        renderInventory();
+        renderReports();
         
         showToast("Synchronized successfully with Supabase.", "success");
     } catch (error) {
@@ -222,205 +245,163 @@ function displaySchemaSetupError() {
 
 // Update Dashboard Statistics Cards
 function updateMetrics() {
-    // Total Employees
-    document.getElementById('metricEmployees').textContent = state.employees.length;
+    // Total Registered Assets
+    document.getElementById('metricAssets').textContent = state.assets.length;
     
-    // Active Tasks (Todo, In Progress, In Review)
-    const activeTasks = state.tasks.filter(t => t.status !== 'Done').length;
-    document.getElementById('metricTasks').textContent = activeTasks;
+    // Active/Pending Tickets (Scheduled, In Progress, In Review)
+    const pendingCount = state.maintenance.filter(t => t.status !== 'Completed' && t.status !== 'Cancelled').length;
+    document.getElementById('metricPendingTickets').textContent = pendingCount;
     
-    // Departments
-    document.getElementById('metricDepartments').textContent = state.departments.length;
+    // Low Stock Spare Parts (Quantity <= Reorder Level)
+    const lowStockCount = state.inventory.filter(i => i.quantity <= i.reorder_level).length;
+    document.getElementById('metricLowStock').textContent = lowStockCount;
     
-    // Total Payroll
-    const totalPayroll = state.employees
-        .filter(emp => emp.status === 'Active')
-        .reduce((sum, emp) => sum + Number(emp.salary || 0), 0);
-    
-    document.getElementById('metricPayroll').textContent = 
-        new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(totalPayroll);
+    // Total Maintenance Costs
+    const totalCost = state.maintenance.reduce((sum, item) => sum + Number(item.cost || 0), 0);
+    document.getElementById('metricTotalCost').textContent = 
+        new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(totalCost);
 }
 
 // Populate Modal Forms Selector options
 function populateFormSelectors() {
-    // Populate departments in employee modal select
-    const deptSelect = document.getElementById('empDepartment');
-    deptSelect.innerHTML = '<option value="">Select Department</option>';
-    state.departments.forEach(dept => {
+    // Populate assets list in maintenance ticket modal select
+    const assetSelect = document.getElementById('maintAsset');
+    assetSelect.innerHTML = '<option value="">Select Target Asset</option>';
+    state.assets.forEach(asset => {
         const opt = document.createElement('option');
-        opt.value = dept.id;
-        opt.textContent = dept.name;
-        deptSelect.appendChild(opt);
-    });
-
-    // Populate employees in tasks modal select
-    const empSelect = document.getElementById('taskAssignee');
-    empSelect.innerHTML = '<option value="">Unassigned</option>';
-    state.employees.forEach(emp => {
-        const opt = document.createElement('option');
-        opt.value = emp.id;
-        opt.textContent = `${emp.first_name} ${emp.last_name}`;
-        empSelect.appendChild(opt);
+        opt.value = asset.id;
+        opt.textContent = `${asset.name} (${asset.serial_number || 'N/A'})`;
+        assetSelect.appendChild(opt);
     });
 }
 
-// Render Dashboard Lists
+// Render Dashboard Sections
 function renderDashboard() {
-    // 1. Recent Tasks
-    const recentTasksBody = document.querySelector('#recentTasksTable tbody');
-    recentTasksBody.innerHTML = '';
+    // 1. Upcoming scheduled maintenance
+    const ticketsBody = document.querySelector('#dashboardTicketsTable tbody');
+    ticketsBody.innerHTML = '';
     
-    // Get latest 5 tasks
-    const sortedTasks = [...state.tasks]
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    // Get latest 5 pending tickets
+    const pendingTickets = [...state.maintenance]
+        .filter(t => t.status !== 'Completed' && t.status !== 'Cancelled')
+        .sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))
         .slice(0, 5);
 
-    if (sortedTasks.length === 0) {
-        recentTasksBody.innerHTML = `
+    if (pendingTickets.length === 0) {
+        ticketsBody.innerHTML = `
             <tr>
                 <td colspan="4" class="empty-state">
-                    <span class="material-symbols-rounded empty-state-icon">assignment_late</span>
-                    <div class="empty-state-title">No tasks found</div>
+                    <span class="material-symbols-rounded empty-state-icon">done_all</span>
+                    <div class="empty-state-title">No pending tickets</div>
                 </td>
             </tr>
         `;
     } else {
-        sortedTasks.forEach(task => {
+        pendingTickets.forEach(ticket => {
             const row = document.createElement('tr');
+            const asset = state.assets.find(a => a.id === ticket.asset_id);
+            const assetName = asset ? asset.name : 'Unknown Asset';
+            const scheduledDate = new Date(ticket.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             
-            // Assignee representation
-            const assignee = state.employees.find(e => e.id === task.assigned_to);
-            const assigneeName = assignee ? `${assignee.first_name} ${assignee.last_name}` : 'Unassigned';
-            const initials = assignee ? `${assignee.first_name[0]}${assignee.last_name[0]}`.toUpperCase() : '?';
-            
-            // Priority pill class
-            const priorityClass = `badge badge-${task.priority.toLowerCase()}`;
-            // Status pill class
-            const statusClass = `badge badge-${task.status.toLowerCase().replace(' ', '')}`;
+            const statusClass = `badge badge-${ticket.status.toLowerCase().replace(' ', '')}`;
 
             row.innerHTML = `
-                <td style="font-weight: 500;">${task.title}</td>
-                <td>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <div class="assignee-avatar" style="width: 20px; height: 20px; font-size: 0.6rem;">${initials}</div>
-                        <span>${assigneeName}</span>
-                    </div>
-                </td>
-                <td><span class="${priorityClass}">${task.priority}</span></td>
-                <td><span class="${statusClass}">${task.status}</span></td>
+                <td style="font-weight: 500;">${assetName}</td>
+                <td>${ticket.type}</td>
+                <td style="color: var(--text-secondary);">${scheduledDate}</td>
+                <td><span class="${statusClass}">${ticket.status}</span></td>
             `;
-            recentTasksBody.appendChild(row);
+            ticketsBody.appendChild(row);
         });
     }
 
-    // 2. Recent Hires
-    const recentHiresBody = document.querySelector('#recentHiresTable tbody');
-    recentHiresBody.innerHTML = '';
+    // 2. Low stock parts warning list
+    const stockBody = document.querySelector('#dashboardStockTable tbody');
+    stockBody.innerHTML = '';
 
-    const sortedHires = [...state.employees]
-        .sort((a, b) => new Date(b.join_date) - new Date(a.join_date))
+    const lowStockParts = [...state.inventory]
+        .filter(i => i.quantity <= i.reorder_level)
+        .sort((a, b) => a.quantity - b.quantity)
         .slice(0, 5);
 
-    if (sortedHires.length === 0) {
-        recentHiresBody.innerHTML = `
+    if (lowStockParts.length === 0) {
+        stockBody.innerHTML = `
             <tr>
                 <td colspan="2" class="empty-state">
-                    <span class="material-symbols-rounded empty-state-icon">person_off</span>
-                    <div class="empty-state-title">No employees found</div>
+                    <span class="material-symbols-rounded empty-state-icon" style="color: var(--success);">check_circle</span>
+                    <div class="empty-state-title">All stock levels normal</div>
                 </td>
             </tr>
         `;
     } else {
-        sortedHires.forEach(emp => {
+        lowStockParts.forEach(item => {
             const row = document.createElement('tr');
-            const initials = `${emp.first_name[0]}${emp.last_name[0]}`.toUpperCase();
-            const joinDate = new Date(emp.join_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            
             row.innerHTML = `
+                <td style="font-weight: 500;">${item.part_name}</td>
                 <td>
-                    <div class="avatar-cell">
-                        <div class="avatar">${initials}</div>
-                        <div>
-                            <div class="user-name">${emp.first_name} ${emp.last_name}</div>
-                            <div class="user-email">${emp.role}</div>
-                        </div>
-                    </div>
+                    <span class="badge badge-lowstock">${item.quantity} units (Min: ${item.reorder_level})</span>
                 </td>
-                <td style="color: var(--text-secondary); font-size: 0.85rem;">${joinDate}</td>
             `;
-            recentHiresBody.appendChild(row);
+            stockBody.appendChild(row);
         });
     }
 }
 
-// Render Employees directory
-function renderEmployees() {
-    const tbody = document.getElementById('employeesTableBody');
+// Render Assets directory list
+function renderAssets() {
+    const tbody = document.getElementById('assetsTableBody');
     if (!tbody) return;
     
     tbody.innerHTML = '';
     
-    const query = document.getElementById('employeeSearchInput').value.toLowerCase().trim();
+    const query = document.getElementById('assetSearchInput').value.toLowerCase().trim();
+    const categoryFilter = document.getElementById('assetCategoryFilter').value;
+    const statusFilter = document.getElementById('assetStatusFilter').value;
     
-    const filteredEmployees = state.employees.filter(emp => {
-        const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
-        const role = emp.role.toLowerCase();
-        const email = emp.email.toLowerCase();
+    const filteredAssets = state.assets.filter(asset => {
+        const matchesSearch = asset.name.toLowerCase().includes(query) || 
+                              (asset.serial_number && asset.serial_number.toLowerCase().includes(query)) ||
+                              (asset.location && asset.location.toLowerCase().includes(query));
         
-        // Match department name
-        const dept = state.departments.find(d => d.id === emp.department_id);
-        const deptName = dept ? dept.name.toLowerCase() : '';
+        const matchesCategory = categoryFilter === '' || asset.category === categoryFilter;
+        const matchesStatus = statusFilter === '' || asset.status === statusFilter;
         
-        return fullName.includes(query) || role.includes(query) || email.includes(query) || deptName.includes(query);
+        return matchesSearch && matchesCategory && matchesStatus;
     });
 
-    if (filteredEmployees.length === 0) {
+    if (filteredAssets.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="empty-state">
+                <td colspan="8" class="empty-state">
                     <span class="material-symbols-rounded empty-state-icon">search_off</span>
-                    <div class="empty-state-title">No employees matched search criteria</div>
-                    <div class="empty-state-desc">Try double checking the spelling or add a new record.</div>
+                    <div class="empty-state-title">No assets found</div>
+                    <div class="empty-state-desc">Try resetting your filters or register a new asset.</div>
                 </td>
             </tr>
         `;
         return;
     }
 
-    filteredEmployees.forEach(emp => {
+    filteredAssets.forEach(asset => {
         const row = document.createElement('tr');
-        const initials = `${emp.first_name[0]}${emp.last_name[0]}`.toUpperCase();
-        
-        const dept = state.departments.find(d => d.id === emp.department_id);
-        const deptName = dept ? dept.name : 'No Department';
-        
-        const statusClass = `badge badge-${emp.status.toLowerCase().replace(' ', '')}`;
-        const salaryText = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(emp.salary);
-        const joinDate = new Date(emp.join_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const statusClass = `badge badge-${asset.status.toLowerCase().replace(' ', '')}`;
+        const purchaseDate = new Date(asset.purchase_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const purchaseCost = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(asset.purchase_cost);
 
         row.innerHTML = `
-            <td>
-                <div class="avatar-cell">
-                    <div class="avatar">${initials}</div>
-                    <div>
-                        <div class="user-name">${emp.first_name} ${emp.last_name}</div>
-                        <div class="user-email">${emp.email}</div>
-                    </div>
-                </div>
-            </td>
-            <td>
-                <div style="font-weight: 500;">${emp.role}</div>
-                <div style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 2px;">${deptName}</div>
-            </td>
-            <td><span class="${statusClass}">${emp.status}</span></td>
-            <td style="color: var(--text-secondary);">${joinDate}</td>
-            <td style="font-weight: 600;">${salaryText}</td>
+            <td style="font-weight: 500;">${asset.name}</td>
+            <td>${asset.category}</td>
+            <td style="color: var(--text-secondary); font-family: monospace;">${asset.serial_number || 'N/A'}</td>
+            <td>${asset.location}</td>
+            <td><span class="${statusClass}">${asset.status}</span></td>
+            <td>${asset.owner_team}</td>
+            <td style="font-weight: 600;">${purchaseCost} <span style="font-size:0.75rem; color:var(--text-muted); font-weight:400;">(${purchaseDate})</span></td>
             <td>
                 <div class="table-actions">
-                    <button class="btn-icon btn-icon-edit" onclick="openEditEmployeeModal('${emp.id}')" title="Edit Employee">
+                    <button class="btn-icon btn-icon-edit" onclick="openEditAssetModal('${asset.id}')" title="Edit Asset Details">
                         <span class="material-symbols-rounded">edit</span>
                     </button>
-                    <button class="btn-icon btn-icon-delete" onclick="deleteEmployee('${emp.id}')" title="Delete Employee">
+                    <button class="btn-icon btn-icon-delete" onclick="deleteAsset('${asset.id}')" title="Remove Asset">
                         <span class="material-symbols-rounded">delete</span>
                     </button>
                 </div>
@@ -430,9 +411,9 @@ function renderEmployees() {
     });
 }
 
-// Render Kanban board tasks
-function renderTasks() {
-    const statuses = ['Todo', 'In Progress', 'In Review', 'Done'];
+// Render Kanban board maintenance tickets
+function renderMaintenance() {
+    const statuses = ['Scheduled', 'In Progress', 'In Review', 'Completed'];
     
     // Clear counts and containers
     statuses.forEach(status => {
@@ -444,58 +425,69 @@ function renderTasks() {
         if (countEl) countEl.textContent = '0';
     });
 
-    // Populate tasks
-    state.tasks.forEach(task => {
-        const statusKey = task.status.replace(' ', '');
+    // Populate tickets
+    state.maintenance.forEach(ticket => {
+        // Exclude cancelled tickets from standard kanban view
+        if (ticket.status === 'Cancelled') return;
+
+        const statusKey = ticket.status.replace(' ', '');
         const container = document.getElementById(`cards-${statusKey}`);
         
         if (container) {
             const card = document.createElement('div');
             card.className = 'kanban-card';
             card.draggable = true;
-            card.id = `task-card-${task.id}`;
-            card.dataset.taskId = task.id;
+            card.id = `ticket-card-${ticket.id}`;
+            card.dataset.ticketId = ticket.id;
             
             // Drag and drop event bindings
             card.ondragstart = (e) => {
-                e.dataTransfer.setData('text/plain', task.id);
+                e.dataTransfer.setData('text/plain', ticket.id);
                 card.style.opacity = '0.5';
             };
             card.ondragend = () => {
                 card.style.opacity = '1';
             };
 
-            // Double click to edit task
-            card.ondblclick = () => openEditTaskModal(task.id);
+            // Double click to edit ticket
+            card.ondblclick = () => openEditMaintenanceModal(ticket.id);
 
-            // Fetch assignee
-            const assignee = state.employees.find(e => e.id === task.assigned_to);
-            const assigneeName = assignee ? `${assignee.first_name} ${assignee.last_name}` : 'Unassigned';
-            const initials = assignee ? `${assignee.first_name[0]}${assignee.last_name[0]}`.toUpperCase() : '?';
+            // Fetch target asset info
+            const asset = state.assets.find(a => a.id === ticket.asset_id);
+            const assetName = asset ? asset.name : 'Unknown Asset';
+            const location = asset ? asset.location : 'Unknown Location';
 
-            const priorityClass = `badge badge-${task.priority.toLowerCase()}`;
-            const description = task.description || 'No description provided.';
+            const typeClass = ticket.type === 'Preventive' ? 'badge badge-low' : 'badge badge-high';
+            const description = ticket.description || 'No maintenance details provided.';
+            
+            const costFormatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(ticket.cost);
 
             card.innerHTML = `
                 <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
-                    <span class="${priorityClass}">${task.priority}</span>
+                    <span class="${typeClass}">${ticket.type}</span>
                     <div style="display: flex; gap: 4px;">
-                        <button class="btn-icon btn-icon-edit" style="width: 24px; height: 24px; font-size: 14px;" onclick="openEditTaskModal('${task.id}')">
+                        <button class="btn-icon btn-icon-edit" style="width: 24px; height: 24px; font-size: 14px;" onclick="openEditMaintenanceModal('${ticket.id}')">
                             <span class="material-symbols-rounded" style="font-size: 14px;">edit</span>
                         </button>
-                        <button class="btn-icon btn-icon-delete" style="width: 24px; height: 24px; font-size: 14px;" onclick="deleteTask('${task.id}')">
+                        <button class="btn-icon btn-icon-delete" style="width: 24px; height: 24px; font-size: 14px;" onclick="deleteMaintenance('${ticket.id}')">
                             <span class="material-symbols-rounded" style="font-size: 14px;">delete</span>
                         </button>
                     </div>
                 </div>
-                <div class="task-title">${task.title}</div>
+                <div class="task-title">${assetName}</div>
                 <div class="task-desc">${description}</div>
                 <div class="task-meta">
-                    <div class="task-assignee" title="Assignee: ${assigneeName}">
-                        <div class="assignee-avatar">${initials}</div>
-                        <span>${assigneeName}</span>
+                    <div class="meta-row">
+                        <div class="meta-item"><span class="material-symbols-rounded">pin_drop</span> ${location}</div>
                     </div>
-                    ${task.due_date ? `<div style="font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;"><span class="material-symbols-rounded" style="font-size: 14px;">calendar_today</span> ${new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>` : ''}
+                    <div class="meta-row" style="margin-top: 4px;">
+                        <div class="meta-item"><span class="material-symbols-rounded">engineering</span> ${ticket.assigned_team}</div>
+                        <div class="meta-item"><span class="material-symbols-rounded">payments</span> ${costFormatted}</div>
+                    </div>
+                    <div class="meta-row" style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.03); padding-top: 6px;">
+                        <div class="meta-item"><span class="material-symbols-rounded">calendar_today</span> ${new Date(ticket.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                        ${ticket.downtime_hours > 0 ? `<div class="meta-item" style="color: var(--danger);"><span class="material-symbols-rounded" style="color:var(--danger);">hourglass_empty</span> ${ticket.downtime_hours} hrs</div>` : ''}
+                    </div>
                 </div>
             `;
             container.appendChild(card);
@@ -512,12 +504,11 @@ function renderTasks() {
             const count = container.children.length;
             countEl.textContent = count;
             
-            // Render empty state placeholder if column is empty
             if (count === 0) {
                 container.innerHTML = `
                     <div class="empty-state" style="padding: 24px 12px; min-height: 200px;">
-                        <span class="material-symbols-rounded empty-state-icon" style="font-size: 32px;">inbox</span>
-                        <div class="empty-state-title" style="font-size: 0.85rem;">No tasks here</div>
+                        <span class="material-symbols-rounded empty-state-icon" style="font-size: 32px;">verified</span>
+                        <div class="empty-state-title" style="font-size: 0.82rem;">No schedules</div>
                     </div>
                 `;
             }
@@ -525,115 +516,250 @@ function renderTasks() {
     });
 }
 
-// Drag & Drop event helpers
+// Drag & Drop event helpers for maintenance Kanban
 function allowDrop(e) {
     e.preventDefault();
 }
 
-async function dropTask(e) {
+async function dropTicket(e) {
     e.preventDefault();
-    const taskId = e.dataTransfer.getData('text/plain');
-    if (!taskId) return;
+    const ticketId = e.dataTransfer.getData('text/plain');
+    if (!ticketId) return;
 
-    // Find the target column status
     let targetColumn = e.target.closest('.kanban-column');
     if (!targetColumn) return;
     
     const newStatus = targetColumn.dataset.status;
 
-    // Optimistically update the UI state
-    const task = state.tasks.find(t => t.id === taskId);
-    if (!task || task.status === newStatus) return;
+    // Optimistically update state
+    const ticket = state.maintenance.find(t => t.id === ticketId);
+    if (!ticket || ticket.status === newStatus) return;
 
-    const oldStatus = task.status;
-    task.status = newStatus;
-    renderTasks();
+    const oldStatus = ticket.status;
+    
+    // If completed status, make sure we ask for completed_date
+    let updateFields = { status: newStatus };
+    if (newStatus === 'Completed' && !ticket.completed_date) {
+        updateFields.completed_date = new Date().toISOString().split('T')[0];
+        ticket.completed_date = updateFields.completed_date;
+    }
+
+    ticket.status = newStatus;
+    renderMaintenance();
 
     try {
         const { error } = await window.supabaseClient
-            .from('tasks')
-            .update({ status: newStatus })
-            .eq('id', taskId);
+            .from('maintenance_records')
+            .update(updateFields)
+            .eq('id', ticketId);
 
         if (error) throw error;
-        showToast(`Task status updated to "${newStatus}"`, "success");
+        showToast(`Work order status updated to "${newStatus}"`, "success");
         updateMetrics();
+        renderReports();
     } catch (error) {
-        console.error("Error updating task status:", error);
+        console.error("Error updating ticket status:", error);
         showToast("Failed to update status on server. Reverting...", "error");
-        // Revert
-        task.status = oldStatus;
-        renderTasks();
+        ticket.status = oldStatus;
+        renderMaintenance();
     }
 }
 
-// Render Departments units
-function renderDepartments() {
-    const grid = document.getElementById('departmentsGrid');
-    if (!grid) return;
+// Render Vendors & Contracts list
+function renderVendors() {
+    const tbody = document.getElementById('vendorsTableBody');
+    if (!tbody) return;
     
-    grid.innerHTML = '';
+    tbody.innerHTML = '';
 
-    if (state.departments.length === 0) {
-        grid.innerHTML = `
-            <div class="panel empty-state" style="grid-column: 1 / -1;">
-                <span class="material-symbols-rounded empty-state-icon">corporate_fare</span>
-                <div class="empty-state-title">No Departments Registered</div>
-                <button class="btn btn-primary" onclick="openAddDepartmentModal()">Add First Department</button>
-            </div>
+    if (state.vendors.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="empty-state">
+                    <span class="material-symbols-rounded empty-state-icon">handshake</span>
+                    <div class="empty-state-title">No service providers registered</div>
+                    <button class="btn btn-primary" onclick="openAddVendorModal()">Register First Vendor</button>
+                </td>
+            </tr>
         `;
         return;
     }
 
-    state.departments.forEach(dept => {
-        // Count employees in this department
-        const empCount = state.employees.filter(e => e.department_id === dept.id).length;
+    state.vendors.forEach(vendor => {
+        const row = document.createElement('tr');
         
-        // Sum payroll for this department
-        const deptPayroll = state.employees
-            .filter(e => e.department_id === dept.id && e.status === 'Active')
-            .reduce((sum, e) => sum + Number(e.salary || 0), 0);
-
-        const budgetFormatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(dept.budget);
-        const payrollFormatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(deptPayroll);
-
-        const card = document.createElement('div');
-        card.className = 'panel dept-card';
+        let contractText = 'No active AMC contract';
+        let contractStatusClass = 'badge badge-leave';
         
-        card.innerHTML = `
-            <div class="dept-header">
-                <div class="dept-name">${dept.name}</div>
-                <div style="font-size: 0.8rem; background: rgba(99, 102, 241, 0.15); color: var(--primary); padding: 4px 10px; border-radius: 12px; font-weight: 600;">
-                    ${empCount} Staff
-                </div>
-            </div>
+        if (vendor.amc_start_date && vendor.amc_end_date) {
+            const start = new Date(vendor.amc_start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            const end = new Date(vendor.amc_end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
             
-            <div class="dept-stats">
-                <div class="dept-stat-row">
-                    <span class="dept-stat-label">Manager</span>
-                    <span class="dept-stat-value">${dept.manager || 'Vacant'}</span>
-                </div>
-                <div class="dept-stat-row">
-                    <span class="dept-stat-label">Annual Budget</span>
-                    <span class="dept-stat-value" style="color: var(--success); font-weight: 600;">${budgetFormatted}</span>
-                </div>
-                <div class="dept-stat-row">
-                    <span class="dept-stat-label">Payroll Allocated</span>
-                    <span class="dept-stat-value" style="color: var(--secondary);">${payrollFormatted}</span>
-                </div>
-            </div>
+            // Check if active
+            const today = new Date().toISOString().split('T')[0];
+            if (today >= vendor.amc_start_date && today <= vendor.amc_end_date) {
+                contractText = `Active (${start} - ${end})`;
+                contractStatusClass = 'badge badge-active';
+            } else {
+                contractText = `Expired (${start} - ${end})`;
+                contractStatusClass = 'badge badge-terminated';
+            }
+        }
 
-            <div class="dept-actions">
-                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="openEditDepartmentModal('${dept.id}')">
-                    <span class="material-symbols-rounded" style="font-size: 16px;">edit</span> Edit
-                </button>
-                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem;" onclick="deleteDepartment('${dept.id}')">
-                    <span class="material-symbols-rounded" style="font-size: 16px;">delete</span> Delete
-                </button>
+        row.innerHTML = `
+            <td style="font-weight: 500;">${vendor.name}</td>
+            <td>${vendor.contact_name}</td>
+            <td><a href="mailto:${vendor.email}" style="color:var(--secondary); text-decoration:none;">${vendor.email}</a></td>
+            <td style="color: var(--text-secondary);">${vendor.phone}</td>
+            <td><span class="${contractStatusClass}">${contractText}</span></td>
+            <td>
+                <div class="table-actions">
+                    <button class="btn-icon btn-icon-edit" onclick="openEditVendorModal('${vendor.id}')" title="Edit Vendor Details">
+                        <span class="material-symbols-rounded">edit</span>
+                    </button>
+                    <button class="btn-icon btn-icon-delete" onclick="deleteVendor('${vendor.id}')" title="Remove Contract">
+                        <span class="material-symbols-rounded">delete</span>
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Render Spare parts stock inventory
+function renderInventory() {
+    const tbody = document.getElementById('inventoryTableBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+
+    if (state.inventory.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty-state">
+                    <span class="material-symbols-rounded empty-state-icon">inventory</span>
+                    <div class="empty-state-title">Warehouse inventory is empty</div>
+                    <button class="btn btn-primary" onclick="openAddInventoryModal()">Add Spare Part</button>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    state.inventory.forEach(item => {
+        const row = document.createElement('tr');
+        const costFormatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(item.unit_cost);
+        
+        const isLowStock = item.quantity <= item.reorder_level;
+        const statusBadge = isLowStock 
+            ? '<span class="badge badge-lowstock">Low Stock Warning</span>' 
+            : '<span class="badge badge-normal">Stock Sufficient</span>';
+
+        row.innerHTML = `
+            <td style="font-weight: 500;">${item.part_name}</td>
+            <td style="font-weight: 600; font-size: 1rem;">${item.quantity} units</td>
+            <td style="color: var(--text-secondary);">${item.reorder_level} units</td>
+            <td style="font-weight: 600;">${costFormatted}</td>
+            <td>${item.location}</td>
+            <td>${statusBadge}</td>
+            <td>
+                <div class="table-actions">
+                    <button class="btn-icon btn-icon-edit" onclick="openEditInventoryModal('${item.id}')" title="Update Stock">
+                        <span class="material-symbols-rounded">edit</span>
+                    </button>
+                    <button class="btn-icon btn-icon-delete" onclick="deleteInventory('${item.id}')" title="Delete Part">
+                        <span class="material-symbols-rounded">delete</span>
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Render Reports & Utilizations Charts
+function renderReports() {
+    // 1. Asset Status Distribution Breakdown
+    const breakdownContainer = document.getElementById('assetStatusBreakdown');
+    if (breakdownContainer) {
+        breakdownContainer.innerHTML = '';
+        
+        const statuses = ['Operational', 'Under Maintenance', 'Broken', 'Retired'];
+        const total = state.assets.length;
+        
+        statuses.forEach(status => {
+            const count = state.assets.filter(a => a.status === status).length;
+            const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+            
+            // Map statuses to color themes
+            let barColor = 'var(--primary)';
+            if (status === 'Operational') barColor = 'var(--success)';
+            if (status === 'Under Maintenance') barColor = 'var(--secondary)';
+            if (status === 'Broken') barColor = 'var(--danger)';
+            if (status === 'Retired') barColor = 'var(--text-muted)';
+
+            const item = document.createElement('div');
+            item.className = 'progress-metric-item';
+            
+            item.innerHTML = `
+                <div class="metric-header-row">
+                    <span>${status}</span>
+                    <span style="color: ${barColor}">${count} assets (${percentage}%)</span>
+                </div>
+                <div class="metric-bar-container">
+                    <div class="metric-bar-fill" style="width: ${percentage}%; background: ${barColor}"></div>
+                </div>
+            `;
+            breakdownContainer.appendChild(item);
+        });
+    }
+
+    // 2. Cost Distribution Breakdown (Preventive vs Corrective)
+    const costGrid = document.getElementById('costBreakdownGrid');
+    if (costGrid) {
+        costGrid.innerHTML = '';
+
+        const preventiveCost = state.maintenance
+            .filter(t => t.type === 'Preventive')
+            .reduce((sum, t) => sum + Number(t.cost || 0), 0);
+            
+        const correctiveCost = state.maintenance
+            .filter(t => t.type === 'Corrective')
+            .reduce((sum, t) => sum + Number(t.cost || 0), 0);
+
+        const totalCost = preventiveCost + correctiveCost;
+        
+        const prevPercent = totalCost > 0 ? Math.round((preventiveCost / totalCost) * 100) : 0;
+        const corrPercent = totalCost > 0 ? Math.round((correctiveCost / totalCost) * 100) : 0;
+
+        const prevCostFormatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(preventiveCost);
+        const corrCostFormatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(correctiveCost);
+
+        costGrid.innerHTML = `
+            <div class="cost-item">
+                <div class="cost-label">
+                    <span class="dot" style="background: var(--success)"></span>
+                    Preventive Maintenance
+                </div>
+                <div class="cost-value">${prevCostFormatted} <span style="font-size:0.75rem; color:var(--text-secondary); font-weight:400;">(${prevPercent}%)</span></div>
+            </div>
+            <div class="cost-item">
+                <div class="cost-label">
+                    <span class="dot" style="background: var(--danger)"></span>
+                    Corrective Maintenance
+                </div>
+                <div class="cost-value">${corrCostFormatted} <span style="font-size:0.75rem; color:var(--text-secondary); font-weight:400;">(${corrPercent}%)</span></div>
             </div>
         `;
-        grid.appendChild(card);
-    });
+    }
+
+    // 3. Downtime metrics
+    const downtimeEl = document.getElementById('totalDowntimeVal');
+    if (downtimeEl) {
+        const totalDowntime = state.maintenance.reduce((sum, t) => sum + Number(t.downtime_hours || 0), 0);
+        downtimeEl.textContent = `${totalDowntime} hrs`;
+    }
 }
 
 // Modal handling utilities
@@ -645,245 +771,364 @@ function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
 }
 
-// CRUD Operations - Employee
-function openAddEmployeeModal() {
-    document.getElementById('employeeModalTitle').textContent = "Add New Employee";
-    document.getElementById('employeeForm').reset();
-    document.getElementById('employeeId').value = '';
-    openModal('employeeModal');
+// CRUD Operations - Asset
+function openAddAssetModal() {
+    document.getElementById('assetModalTitle').textContent = "Register New Asset";
+    document.getElementById('assetForm').reset();
+    document.getElementById('assetId').value = '';
+    
+    // Set default dates
+    document.getElementById('assetPurchaseDate').value = new Date().toISOString().split('T')[0];
+    openModal('assetModal');
 }
 
-function openEditEmployeeModal(id) {
-    const emp = state.employees.find(e => e.id === id);
-    if (!emp) return;
+function openEditAssetModal(id) {
+    const asset = state.assets.find(a => a.id === id);
+    if (!asset) return;
     
-    document.getElementById('employeeModalTitle').textContent = "Edit Employee";
-    document.getElementById('employeeId').value = emp.id;
-    document.getElementById('empFirstName').value = emp.first_name;
-    document.getElementById('empLastName').value = emp.last_name;
-    document.getElementById('empEmail').value = emp.email;
-    document.getElementById('empRole').value = emp.role;
-    document.getElementById('empDepartment').value = emp.department_id || '';
-    document.getElementById('empSalary').value = emp.salary;
-    document.getElementById('empStatus').value = emp.status;
+    document.getElementById('assetModalTitle').textContent = "Edit Asset Details";
+    document.getElementById('assetId').value = asset.id;
+    document.getElementById('assetName').value = asset.name;
+    document.getElementById('assetCategory').value = asset.category;
+    document.getElementById('assetSerial').value = asset.serial_number || '';
+    document.getElementById('assetStatus').value = asset.status;
+    document.getElementById('assetOwner').value = asset.owner_team;
+    document.getElementById('assetLocation').value = asset.location || '';
+    document.getElementById('assetCost').value = asset.purchase_cost;
+    document.getElementById('assetPurchaseDate').value = asset.purchase_date;
+    document.getElementById('assetWarranty').value = asset.warranty_expiration || '';
     
-    openModal('employeeModal');
+    openModal('assetModal');
 }
 
-async function handleEmployeeSubmit(e) {
+async function handleAssetSubmit(e) {
     e.preventDefault();
-    const id = document.getElementById('employeeId').value;
+    const id = document.getElementById('assetId').value;
     
-    const employeeData = {
-        first_name: document.getElementById('empFirstName').value,
-        last_name: document.getElementById('empLastName').value,
-        email: document.getElementById('empEmail').value,
-        role: document.getElementById('empRole').value,
-        department_id: document.getElementById('empDepartment').value || null,
-        salary: Number(document.getElementById('empSalary').value),
-        status: document.getElementById('empStatus').value
+    const assetData = {
+        name: document.getElementById('assetName').value,
+        category: document.getElementById('assetCategory').value,
+        serial_number: document.getElementById('assetSerial').value || null,
+        status: document.getElementById('assetStatus').value,
+        owner_team: document.getElementById('assetOwner').value,
+        location: document.getElementById('assetLocation').value,
+        purchase_cost: Number(document.getElementById('assetCost').value),
+        purchase_date: document.getElementById('assetPurchaseDate').value,
+        warranty_expiration: document.getElementById('assetWarranty').value || null
     };
 
     try {
         if (id) {
             // Update
             const { error } = await window.supabaseClient
-                .from('employees')
-                .update(employeeData)
+                .from('assets')
+                .update(assetData)
                 .eq('id', id);
             
             if (error) throw error;
-            showToast("Employee updated successfully.", "success");
+            showToast("Asset details updated successfully.", "success");
         } else {
             // Create
             const { error } = await window.supabaseClient
-                .from('employees')
-                .insert([employeeData]);
+                .from('assets')
+                .insert([assetData]);
             
             if (error) throw error;
-            showToast("Employee added successfully.", "success");
+            showToast("Asset registered successfully.", "success");
         }
-        closeModal('employeeModal');
+        closeModal('assetModal');
         await syncAllData();
     } catch (error) {
-        console.error("Employee submit error:", error);
-        showToast(`Error saving employee: ${error.message || error}`, "error");
+        console.error("Asset submit error:", error);
+        showToast(`Error saving asset: ${error.message || error}`, "error");
     }
 }
 
-async function deleteEmployee(id) {
-    if (!confirm("Are you sure you want to remove this employee? This will also unassign their tasks.")) return;
+async function deleteAsset(id) {
+    if (!confirm("Are you sure you want to retire and remove this asset? All historical maintenance logs will be lost.")) return;
 
     try {
         const { error } = await window.supabaseClient
-            .from('employees')
+            .from('assets')
             .delete()
             .eq('id', id);
 
         if (error) throw error;
-        showToast("Employee removed successfully.", "success");
+        showToast("Asset removed successfully.", "success");
         await syncAllData();
     } catch (error) {
-        console.error("Employee delete error:", error);
-        showToast(`Error deleting employee: ${error.message || error}`, "error");
+        console.error("Asset delete error:", error);
+        showToast(`Error deleting asset: ${error.message || error}`, "error");
     }
 }
 
-// CRUD Operations - Task
-function openAddTaskModal() {
-    document.getElementById('taskModalTitle').textContent = "Create Task";
-    document.getElementById('taskForm').reset();
-    document.getElementById('taskId').value = '';
-    openModal('taskModal');
+// CRUD Operations - Maintenance schedules
+function openAddMaintenanceModal() {
+    document.getElementById('maintenanceModalTitle').textContent = "Schedule Maintenance Work";
+    document.getElementById('maintenanceForm').reset();
+    document.getElementById('maintenanceId').value = '';
+    
+    // Set default date
+    document.getElementById('maintScheduledDate').value = new Date().toISOString().split('T')[0];
+    openModal('maintenanceModal');
 }
 
-function openEditTaskModal(id) {
-    const task = state.tasks.find(t => t.id === id);
-    if (!task) return;
+function openEditMaintenanceModal(id) {
+    const ticket = state.maintenance.find(t => t.id === id);
+    if (!ticket) return;
     
-    document.getElementById('taskModalTitle').textContent = "Edit Task";
-    document.getElementById('taskId').value = task.id;
-    document.getElementById('taskTitle').value = task.title;
-    document.getElementById('taskDesc').value = task.description || '';
-    document.getElementById('taskAssignee').value = task.assigned_to || '';
-    document.getElementById('taskPriority').value = task.priority;
-    document.getElementById('taskStatus').value = task.status;
-    document.getElementById('taskDueDate').value = task.due_date || '';
+    document.getElementById('maintenanceModalTitle').textContent = "Edit Work Order";
+    document.getElementById('maintenanceId').value = ticket.id;
+    document.getElementById('maintAsset').value = ticket.asset_id;
+    document.getElementById('maintType').value = ticket.type;
+    document.getElementById('maintTeam').value = ticket.assigned_team;
+    document.getElementById('maintDesc').value = ticket.description;
+    document.getElementById('maintScheduledDate').value = ticket.scheduled_date;
+    document.getElementById('maintCompletedDate').value = ticket.completed_date || '';
+    document.getElementById('maintCost').value = ticket.cost;
+    document.getElementById('maintDowntime').value = ticket.downtime_hours;
+    document.getElementById('maintStatus').value = ticket.status;
     
-    openModal('taskModal');
+    openModal('maintenanceModal');
 }
 
-async function handleTaskSubmit(e) {
+async function handleMaintenanceSubmit(e) {
     e.preventDefault();
-    const id = document.getElementById('taskId').value;
+    const id = document.getElementById('maintenanceId').value;
     
-    const taskData = {
-        title: document.getElementById('taskTitle').value,
-        description: document.getElementById('taskDesc').value || null,
-        assigned_to: document.getElementById('taskAssignee').value || null,
-        priority: document.getElementById('taskPriority').value,
-        status: document.getElementById('taskStatus').value,
-        due_date: document.getElementById('taskDueDate').value || null
+    const ticketData = {
+        asset_id: document.getElementById('maintAsset').value,
+        type: document.getElementById('maintType').value,
+        assigned_team: document.getElementById('maintTeam').value,
+        description: document.getElementById('maintDesc').value,
+        scheduled_date: document.getElementById('maintScheduledDate').value,
+        completed_date: document.getElementById('maintCompletedDate').value || null,
+        cost: Number(document.getElementById('maintCost').value),
+        downtime_hours: Number(document.getElementById('maintDowntime').value),
+        status: document.getElementById('maintStatus').value
+    };
+
+    // Auto update asset status based on work order status
+    let targetAssetStatus = null;
+    if (ticketData.status === 'In Progress') {
+        targetAssetStatus = 'Under Maintenance';
+    } else if (ticketData.status === 'Completed') {
+        targetAssetStatus = 'Operational';
+    }
+
+    try {
+        if (id) {
+            // Update
+            const { error } = await window.supabaseClient
+                .from('maintenance_records')
+                .update(ticketData)
+                .eq('id', id);
+            
+            if (error) throw error;
+            showToast("Work order ticket updated.", "success");
+        } else {
+            // Create
+            const { error } = await window.supabaseClient
+                .from('maintenance_records')
+                .insert([ticketData]);
+            
+            if (error) throw error;
+            showToast("Work order ticket created.", "success");
+        }
+
+        // Run asset status update if status transitions
+        if (targetAssetStatus) {
+            await window.supabaseClient
+                .from('assets')
+                .update({ status: targetAssetStatus })
+                .eq('id', ticketData.asset_id);
+        }
+
+        closeModal('maintenanceModal');
+        await syncAllData();
+    } catch (error) {
+        console.error("Maintenance submit error:", error);
+        showToast(`Error saving ticket: ${error.message || error}`, "error");
+    }
+}
+
+async function deleteMaintenance(id) {
+    if (!confirm("Are you sure you want to delete this maintenance schedule?")) return;
+
+    try {
+        const { error } = await window.supabaseClient
+            .from('maintenance_records')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        showToast("Maintenance ticket deleted.", "success");
+        await syncAllData();
+    } catch (error) {
+        console.error("Maintenance delete error:", error);
+        showToast(`Error deleting ticket: ${error.message || error}`, "error");
+    }
+}
+
+// CRUD Operations - Vendor Contract
+function openAddVendorModal() {
+    document.getElementById('vendorModalTitle').textContent = "Add Vendor Contract";
+    document.getElementById('vendorForm').reset();
+    document.getElementById('vendorId').value = '';
+    openModal('vendorModal');
+}
+
+function openEditVendorModal(id) {
+    const vendor = state.vendors.find(v => v.id === id);
+    if (!vendor) return;
+
+    document.getElementById('vendorModalTitle').textContent = "Edit Vendor Details";
+    document.getElementById('vendorId').value = vendor.id;
+    document.getElementById('vendorName').value = vendor.name;
+    document.getElementById('vendorContact').value = vendor.contact_name;
+    document.getElementById('vendorEmail').value = vendor.email;
+    document.getElementById('vendorPhone').value = vendor.phone;
+    document.getElementById('vendorAmcStart').value = vendor.amc_start_date || '';
+    document.getElementById('vendorAmcEnd').value = vendor.amc_end_date || '';
+
+    openModal('vendorModal');
+}
+
+async function handleVendorSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('vendorId').value;
+
+    const vendorData = {
+        name: document.getElementById('vendorName').value,
+        contact_name: document.getElementById('vendorContact').value,
+        email: document.getElementById('vendorEmail').value,
+        phone: document.getElementById('vendorPhone').value,
+        amc_start_date: document.getElementById('vendorAmcStart').value || null,
+        amc_end_date: document.getElementById('vendorAmcEnd').value || null
     };
 
     try {
         if (id) {
             // Update
             const { error } = await window.supabaseClient
-                .from('tasks')
-                .update(taskData)
+                .from('vendors')
+                .update(vendorData)
                 .eq('id', id);
-            
+
             if (error) throw error;
-            showToast("Task updated successfully.", "success");
+            showToast("Vendor contract details updated.", "success");
         } else {
             // Create
             const { error } = await window.supabaseClient
-                .from('tasks')
-                .insert([taskData]);
-            
+                .from('vendors')
+                .insert([vendorData]);
+
             if (error) throw error;
-            showToast("Task created successfully.", "success");
+            showToast("Vendor contract added successfully.", "success");
         }
-        closeModal('taskModal');
+        closeModal('vendorModal');
         await syncAllData();
     } catch (error) {
-        console.error("Task submit error:", error);
-        showToast(`Error saving task: ${error.message || error}`, "error");
+        console.error("Vendor submit error:", error);
+        showToast(`Error saving vendor: ${error.message || error}`, "error");
     }
 }
 
-async function deleteTask(id) {
-    if (!confirm("Are you sure you want to delete this task?")) return;
+async function deleteVendor(id) {
+    if (!confirm("Are you sure you want to terminate this vendor contract registry?")) return;
 
     try {
         const { error } = await window.supabaseClient
-            .from('tasks')
+            .from('vendors')
             .delete()
             .eq('id', id);
 
         if (error) throw error;
-        showToast("Task deleted successfully.", "success");
+        showToast("Vendor contract removed.", "success");
         await syncAllData();
     } catch (error) {
-        console.error("Task delete error:", error);
-        showToast(`Error deleting task: ${error.message || error}`, "error");
+        console.error("Vendor delete error:", error);
+        showToast(`Error deleting vendor: ${error.message || error}`, "error");
     }
 }
 
-// CRUD Operations - Department
-function openAddDepartmentModal() {
-    document.getElementById('departmentModalTitle').textContent = "Add Department";
-    document.getElementById('departmentForm').reset();
-    document.getElementById('departmentId').value = '';
-    openModal('departmentModal');
+// CRUD Operations - Inventory Spare Parts
+function openAddInventoryModal() {
+    document.getElementById('inventoryModalTitle').textContent = "Add Spare Part";
+    document.getElementById('inventoryForm').reset();
+    document.getElementById('inventoryId').value = '';
+    openModal('inventoryModal');
 }
 
-function openEditDepartmentModal(id) {
-    const dept = state.departments.find(d => d.id === id);
-    if (!dept) return;
+function openEditInventoryModal(id) {
+    const item = state.inventory.find(i => i.id === id);
+    if (!item) return;
 
-    document.getElementById('departmentModalTitle').textContent = "Edit Department";
-    document.getElementById('departmentId').value = dept.id;
-    document.getElementById('deptName').value = dept.name;
-    document.getElementById('deptManager').value = dept.manager || '';
-    document.getElementById('deptBudget').value = dept.budget;
+    document.getElementById('inventoryModalTitle').textContent = "Update Spare Part Stock";
+    document.getElementById('inventoryId').value = item.id;
+    document.getElementById('partName').value = item.part_name;
+    document.getElementById('partQty').value = item.quantity;
+    document.getElementById('partReorder').value = item.reorder_level;
+    document.getElementById('partCost').value = item.unit_cost;
+    document.getElementById('partLocation').value = item.location || '';
 
-    openModal('departmentModal');
+    openModal('inventoryModal');
 }
 
-async function handleDepartmentSubmit(e) {
+async function handleInventorySubmit(e) {
     e.preventDefault();
-    const id = document.getElementById('departmentId').value;
+    const id = document.getElementById('inventoryId').value;
 
-    const departmentData = {
-        name: document.getElementById('deptName').value,
-        manager: document.getElementById('deptManager').value,
-        budget: Number(document.getElementById('deptBudget').value)
+    const inventoryData = {
+        part_name: document.getElementById('partName').value,
+        quantity: Number(document.getElementById('partQty').value),
+        reorder_level: Number(document.getElementById('partReorder').value),
+        unit_cost: Number(document.getElementById('partCost').value),
+        location: document.getElementById('partLocation').value
     };
 
     try {
         if (id) {
             // Update
             const { error } = await window.supabaseClient
-                .from('departments')
-                .update(departmentData)
+                .from('inventory')
+                .update(inventoryData)
                 .eq('id', id);
 
             if (error) throw error;
-            showToast("Department updated successfully.", "success");
+            showToast("Spare part inventory details updated.", "success");
         } else {
             // Create
             const { error } = await window.supabaseClient
-                .from('departments')
-                .insert([departmentData]);
+                .from('inventory')
+                .insert([inventoryData]);
 
             if (error) throw error;
-            showToast("Department created successfully.", "success");
+            showToast("Spare part registered to stock.", "success");
         }
-        closeModal('departmentModal');
+        closeModal('inventoryModal');
         await syncAllData();
     } catch (error) {
-        console.error("Department submit error:", error);
-        showToast(`Error saving department: ${error.message || error}`, "error");
+        console.error("Inventory submit error:", error);
+        showToast(`Error saving part: ${error.message || error}`, "error");
     }
 }
 
-async function deleteDepartment(id) {
-    if (!confirm("Are you sure you want to delete this department? Employees linked to this department will be marked as having 'No Department'.")) return;
+async function deleteInventory(id) {
+    if (!confirm("Are you sure you want to delete this spare part from stock list?")) return;
 
     try {
         const { error } = await window.supabaseClient
-            .from('departments')
+            .from('inventory')
             .delete()
             .eq('id', id);
 
         if (error) throw error;
-        showToast("Department deleted successfully.", "success");
+        showToast("Spare part removed from registry.", "success");
         await syncAllData();
     } catch (error) {
-        console.error("Department delete error:", error);
-        showToast(`Error deleting department: ${error.message || error}`, "error");
+        console.error("Inventory delete error:", error);
+        showToast(`Error deleting item: ${error.message || error}`, "error");
     }
 }
 
@@ -906,7 +1151,6 @@ function showToast(message, type = 'info') {
 
     container.appendChild(toast);
 
-    // Auto-remove after 4 seconds
     setTimeout(() => {
         toast.style.animation = 'fadeIn 0.3s reverse forwards';
         setTimeout(() => {
