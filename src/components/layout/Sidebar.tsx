@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function Sidebar() {
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, updateRole, logout } = useAuth();
   
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     'Maintenance': location.pathname.startsWith('/maintenance'),
@@ -39,7 +39,7 @@ export default function Sidebar() {
         { name: 'Warranties & Assets', path: '/vendors/warranties' },
       ]
     },
-    { name: 'Inventory', path: '/inventory', icon: 'inventory_2', allowedRoles: ['Administrator', 'Operations Team', 'Maintenance Team'] },
+    { name: 'Spare Parts', path: '/inventory', icon: 'inventory_2', allowedRoles: ['Administrator', 'Operations Team', 'Maintenance Team'] },
     { name: 'Reports', path: '/reports', icon: 'monitoring', allowedRoles: ['Administrator', 'Finance Team'] },
     { name: 'Role Management', path: '/roles', icon: 'manage_accounts', allowedRoles: ['Administrator'] },
   ];
@@ -105,7 +105,27 @@ export default function Sidebar() {
               </div>
               <div>
                 <p style={{ margin: '0', fontWeight: '600', color: '#fff', fontSize: '0.9rem' }}>{user.name.split(' ')[0]}</p>
-                <p style={{ margin: '0', fontSize: '0.75rem', color: 'var(--primary)' }}>{user.role}</p>
+                <select 
+                  value={user.role} 
+                  onChange={(e) => updateRole(e.target.value)}
+                  style={{ 
+                    background: 'transparent', 
+                    border: 'none', 
+                    color: 'var(--primary)', 
+                    fontSize: '0.75rem', 
+                    padding: '0', 
+                    marginTop: '2px',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  <option value="Administrator" style={{ color: '#000' }}>Administrator</option>
+                  <option value="Operations Team" style={{ color: '#000' }}>Operations Team</option>
+                  <option value="Facility Team" style={{ color: '#000' }}>Facility Team</option>
+                  <option value="Maintenance Team" style={{ color: '#000' }}>Maintenance Team</option>
+                  <option value="Finance Team" style={{ color: '#000' }}>Finance Team</option>
+                </select>
               </div>
             </div>
             <button 

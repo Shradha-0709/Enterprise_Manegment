@@ -10,6 +10,7 @@ export type UserProfile = {
 type AuthContextType = {
   user: UserProfile | null;
   login: (user: UserProfile) => void;
+  updateRole: (newRole: string) => void;
   logout: () => void;
   isLoading: boolean;
 };
@@ -38,13 +39,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('iasset_user', JSON.stringify(userData));
   };
 
+  const updateRole = (newRole: string) => {
+    if (user) {
+      const updatedUser = { ...user, role: newRole };
+      setUser(updatedUser);
+      localStorage.setItem('iasset_user', JSON.stringify(updatedUser));
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('iasset_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, updateRole, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -57,11 +57,10 @@ const routeMeta: Record<string, { title: string; subtitle: string; btnText: stri
     hideActions: true
   },
   '/inventory': {
-    title: 'Inventory',
+    title: 'Spare Parts',
     subtitle: 'Track stock levels, unit costs, and reorder alerts.',
-    btnText: '',
-    modalId: '',
-    hideActions: true
+    btnText: 'Add Part',
+    modalId: 'inventory'
   },
   '/reports': {
     title: 'Reports & Analytics',
