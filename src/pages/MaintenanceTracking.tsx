@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 type Priority = 'low' | 'medium' | 'high';
-type Status = 'Scheduled' | 'In Progress' | 'In Review' | 'Completed';
+type Status = 'Scheduled' | 'In Progress' | 'In Review' | 'Completed' | 'Cancelled';
 
 interface Task {
   id: string;
@@ -15,58 +16,51 @@ interface Task {
   dueDate: string;
 }
 
-const MOCK_TASKS: Task[] = [
-  {
-    id: 'WO-2041',
-    title: 'HVAC Filter Replacement in Building A',
-    priority: 'medium',
-    status: 'Scheduled',
-    assignee: { name: 'Alex Johnson', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026024d' },
-    dueDate: 'Today',
-  },
-  {
-    id: 'WO-2042',
-    title: 'Elevator Maintenance (Annual)',
-    priority: 'high',
-    status: 'Scheduled',
-    assignee: { name: 'Sarah Smith', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
-    dueDate: 'Tomorrow',
-  },
-  {
-    id: 'WO-2039',
-    title: 'Fix Leaking Pipe in Restroom 2',
-    priority: 'high',
-    status: 'In Progress',
-    assignee: { name: 'Mike Davis', avatar: 'https://i.pravatar.cc/150?u=a04258114e29026702d' },
-    dueDate: 'Today',
-  },
-  {
-    id: 'WO-2035',
-    title: 'Update Firmware on Security Cameras',
-    priority: 'low',
-    status: 'In Review',
-    assignee: { name: 'IT Support', avatar: 'https://i.pravatar.cc/150?u=a04258a2462d826712d' },
-    dueDate: 'Yesterday',
-  },
-  {
-    id: 'WO-2028',
-    title: 'Replace Fire Extinguishers on Floor 3',
-    priority: 'medium',
-    status: 'Completed',
-    assignee: { name: 'Safety Team', avatar: 'https://i.pravatar.cc/150?u=a048581f4e29026701d' },
-    dueDate: 'Last Week',
-  },
-];
-
 export default function MaintenancePage() {
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      const { data } = await supabase.from('maintenance_records').select('*');
+      
+      if (data) {
+        const formatted: Task[] = data.map(record => {
+          // Parse frequency out of description if present
+          let cleanDesc = record.description || 'Unknown Task';
+          if (cleanDesc.startsWith('[')) {
+            const match = cleanDesc.match(/^\[(.*?)\]\s*(.*)$/);
+            if (match) cleanDesc = match[2];
+          }
+
+          return {
+            id: record.id,
+            title: cleanDesc,
+            priority: record.type === 'Corrective' ? 'high' : 'medium',
+            status: record.status as Status || 'Scheduled',
+            assignee: {
+              name: record.assigned_team || 'Unassigned',
+              avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(record.assigned_team || 'Unassigned')}&background=random&color=fff`
+            },
+            dueDate: new Date(record.scheduled_date).toLocaleDateString()
+          };
+        });
+        setTasks(formatted);
+      }
+    };
+    fetchTasks();
+    
+    // Listen for updates to keep in sync
+    const handleRefresh = () => fetchTasks();
+    window.addEventListener('maintenance-updated', handleRefresh);
+    return () => window.removeEventListener('maintenance-updated', handleRefresh);
+  }, []);
 
   const getTasksByStatus = (status: Status) => tasks.filter(t => t.status === status);
 
   const renderCard = (task: Task) => (
     <div key={task.id} className="kanban-card" draggable>
       <div className="card-header">
-        <span className="card-id">{task.id}</span>
+        <span className="card-id" title={task.id}>{task.id.slice(0, 8)}</span>
         <span className={`card-priority priority-${task.priority}`}>
           {task.priority.toUpperCase()}
         </span>

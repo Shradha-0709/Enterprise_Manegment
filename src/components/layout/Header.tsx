@@ -1,17 +1,19 @@
 import { useLocation, useSearchParams } from 'react-router-dom';
 
-const routeMeta: Record<string, { title: string; subtitle: string; btnText: string; modalId: string }> = {
+const routeMeta: Record<string, { title: string; subtitle: string; btnText: string; modalId: string; hideActions?: boolean }> = {
   '/': {
     title: 'Dashboard',
     subtitle: 'Overview of enterprise assets, work tickets, and stock warnings.',
-    btnText: 'Register Asset',
-    modalId: 'asset'
+    btnText: '',
+    modalId: '',
+    hideActions: true
   },
   '/assets': {
     title: 'Assets Directory',
     subtitle: 'Manage company assets, categories, and warranty records.',
-    btnText: 'Register Asset',
-    modalId: 'asset'
+    btnText: '',
+    modalId: '',
+    hideActions: true
   },
   '/maintenance': {
     title: 'Maintenance',
@@ -19,17 +21,47 @@ const routeMeta: Record<string, { title: string; subtitle: string; btnText: stri
     btnText: 'Schedule Work',
     modalId: 'maintenance'
   },
-  '/vendors': {
-    title: 'Vendors & AMC',
+  '/maintenance/preventive': {
+    title: 'Preventive Schedules',
+    subtitle: 'Plan and manage recurring maintenance tasks.',
+    btnText: '',
+    modalId: '',
+    hideActions: true
+  },
+  '/maintenance/corrective': {
+    title: 'Corrective Requests',
+    subtitle: 'Review and assign incoming repair requests.',
+    btnText: '',
+    modalId: '',
+    hideActions: true
+  },
+  '/maintenance/tracking': {
+    title: 'Service Tracking',
+    subtitle: 'Schedule and track live repair work orders.',
+    btnText: '',
+    modalId: '',
+    hideActions: true
+  },
+  '/vendors/directory': {
+    title: 'Vendor Directory',
     subtitle: 'Directory of external service providers and contracts.',
-    btnText: 'Add Vendor',
-    modalId: 'vendor'
+    btnText: '',
+    modalId: '',
+    hideActions: true
+  },
+  '/vendors/warranties': {
+    title: 'Asset Warranties',
+    subtitle: 'Track asset warranties and provider coverage.',
+    btnText: '',
+    modalId: '',
+    hideActions: true
   },
   '/inventory': {
-    title: 'Spare Parts Inventory',
+    title: 'Inventory',
     subtitle: 'Track stock levels, unit costs, and reorder alerts.',
-    btnText: 'Add Part',
-    modalId: 'inventory'
+    btnText: '',
+    modalId: '',
+    hideActions: true
   },
   '/reports': {
     title: 'Reports & Analytics',
@@ -46,32 +78,31 @@ export default function Header() {
 
   return (
     <header className="top-header">
-      <button className="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Sidebar">
-        <span className="material-symbols-rounded">menu</span>
-      </button>
       <div className="header-title-container">
         <h1 id="pageTitle">{meta.title}</h1>
         <p id="pageSubtitle">{meta.subtitle}</p>
       </div>
-      <div className="header-actions">
-        <button className="btn btn-secondary" id="refreshBtn">
-          <span className="material-symbols-rounded">refresh</span>
-          Sync
-        </button>
-        {meta.modalId && (
-          <button 
-            className="btn btn-primary" 
-            id="globalActionBtn"
-            onClick={() => {
-              searchParams.set('modal', meta.modalId);
-              setSearchParams(searchParams);
-            }}
-          >
-            <span className="material-symbols-rounded">add</span>
-            {meta.btnText}
+      {!meta.hideActions && (
+        <div className="header-actions">
+          <button className="btn btn-secondary" id="refreshBtn">
+            <span className="material-symbols-rounded">refresh</span>
+            Sync
           </button>
-        )}
-      </div>
+          {meta.modalId && (
+            <button 
+              className="btn btn-primary" 
+              id="globalActionBtn"
+              onClick={() => {
+                searchParams.set('modal', meta.modalId);
+                setSearchParams(searchParams);
+              }}
+            >
+              <span className="material-symbols-rounded">add</span>
+              {meta.btnText}
+            </button>
+          )}
+        </div>
+      )}
     </header>
   );
 }

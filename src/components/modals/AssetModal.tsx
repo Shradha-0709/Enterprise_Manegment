@@ -1,10 +1,20 @@
 import { useSearchParams } from 'react-router-dom';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export default function AssetModal() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('iAssetOne_IT_Categories_v2');
+    if (saved) {
+      setCategories(JSON.parse(saved));
+    } else {
+      setCategories(['Laptops & PCs', 'Networking Equipment', 'Servers', 'Peripherals']);
+    }
+  }, []);
 
   const closeModal = () => {
     searchParams.delete('modal');
@@ -61,10 +71,7 @@ export default function AssetModal() {
               <div className="form-group">
                 <label className="form-label" htmlFor="assetCategory">Category</label>
                 <select className="form-input" name="assetCategory" id="assetCategory" required>
-                  <option value="Equipment">Equipment</option>
-                  <option value="Office Asset">Office Asset</option>
-                  <option value="Vehicle">Vehicle</option>
-                  <option value="Facilities">Facilities</option>
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div className="form-group">

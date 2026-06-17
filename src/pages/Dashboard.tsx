@@ -1,21 +1,15 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
-const MOCK_INVENTORY = [
-  { id: 1, name: 'HVAC Filters (HEPA)', stock: 15, reorder: 5, cost: '₹45.00', location: 'Warehouse A', status: 'In Stock' },
-  { id: 2, name: 'Elevator Relay Module', stock: 2, reorder: 3, cost: '₹320.00', location: 'Storage B', status: 'Low Stock' },
-  { id: 3, name: 'LED Bulbs (60W equiv)', stock: 120, reorder: 50, cost: '₹3.50', location: 'Warehouse A', status: 'In Stock' },
-  { id: 4, name: 'Fire Extinguisher ABC', stock: 0, reorder: 10, cost: '₹85.00', location: 'Main Building', status: 'Out of Stock' },
-  { id: 5, name: 'Pipe Sealant Tape', stock: 45, reorder: 20, cost: '₹2.00', location: 'Tool Room', status: 'In Stock' },
-];
-
 export default function Dashboard() {
   const [metrics, setMetrics] = useState({
     totalAssets: 0,
     pendingTickets: 0,
     maintenanceCost: 0,
+    lowStockCount: 0,
   });
   const [schedules, setSchedules] = useState<any[]>([]);
+  const [lowStockList, setLowStockList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,25 +25,40 @@ export default function Dashboard() {
         .select('*', { count: 'exact', head: true });
 
       // Fetch maintenance records
-      // We'll join assets to get the asset name for the table
       const { data: maintData } = await supabase
         .from('maintenance_records')
         .select('*, assets(name)')
         .order('scheduled_date', { ascending: true });
 
-      if (maintData) {
-        const pending = maintData.filter(m => m.status !== 'Completed').length;
-        const totalCost = maintData.reduce((sum, m) => sum + (m.cost || 0), 0);
-        
-        setMetrics({
-          totalAssets: assetsCount || 0,
-          pendingTickets: pending,
-          maintenanceCost: totalCost,
-        });
+      // Fetch inventory to compute low stock
+      const { data: invData } = await supabase
+        .from('inventory')
+        .select('*');
 
-        // Get only active schedules (not completed) for the table
-        setSchedules(maintData.filter(m => m.status !== 'Completed').slice(0, 5));
+      let pending = 0;
+      let totalCost = 0;
+      let activeSchedules: any[] = [];
+      
+      if (maintData) {
+        pending = maintData.filter(m => m.status !== 'Completed' && m.status !== 'Cancelled').length;
+        totalCost = maintData.reduce((sum, m) => sum + (m.cost || 0), 0);
+        activeSchedules = maintData.filter(m => m.status !== 'Completed' && m.status !== 'Cancelled').slice(0, 5);
       }
+
+      let lowStockItems: any[] = [];
+      if (invData) {
+        lowStockItems = invData.filter(i => i.quantity <= i.reorder_level);
+      }
+
+      setMetrics({
+        totalAssets: assetsCount || 0,
+        pendingTickets: pending,
+        maintenanceCost: totalCost,
+        lowStockCount: lowStockItems.length,
+      });
+
+      setSchedules(activeSchedules);
+      setLowStockList(lowStockItems.slice(0, 5)); // show top 5 low stock
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -59,11 +68,99 @@ export default function Dashboard() {
 
   return (
     <section id="dashboardSection" className="content-section active">
+      <style>{`
+        .welcome-banner {
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(2, 44, 34, 0.4) 100%);
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          border-radius: 12px;
+          padding: 24px 30px;
+          margin-bottom: 30px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+          position: relative;
+          overflow: hidden;
+        }
+        .welcome-banner::after {
+          content: '';
+          position: absolute;
+          top: 0; right: 0; bottom: 0; left: 0;
+          background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.2), transparent 40%);
+          pointer-events: none;
+        }
+        .welcome-title {
+          font-size: 1.8rem;
+          font-weight: 700;
+          margin: 0;
+          color: #fff;
+          font-family: 'Outfit', sans-serif;
+          letter-spacing: -0.5px;
+        }
+        .welcome-subtitle {
+          color: var(--text-secondary);
+          margin-top: 6px;
+          font-size: 1rem;
+        }
+        
+        .metric-card {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          border: 1px solid var(--border-color);
+          background: linear-gradient(145deg, rgba(2, 44, 34, 0.6) 0%, rgba(1, 21, 15, 0.9) 100%);
+          position: relative;
+          overflow: hidden;
+          border-radius: 12px;
+          padding: 24px;
+        }
+        .metric-card::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0; height: 3px;
+          background: transparent;
+          transition: background 0.3s ease;
+        }
+        .metric-blue:hover::before { background: #3b82f6; }
+        .metric-teal:hover::before { background: #14b8a6; }
+        .metric-pink:hover::before { background: #ec4899; }
+        .metric-amber:hover::before { background: #f59e0b; }
+
+        .metric-card:hover {
+          transform: translateY(-4px);
+          border-color: rgba(255, 255, 255, 0.15);
+          box-shadow: 0 12px 25px -5px rgba(0,0,0,0.4);
+        }
+        
+        .metric-blue .metric-icon-box { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .metric-teal .metric-icon-box { background: rgba(20, 184, 166, 0.15); color: #14b8a6; border: 1px solid rgba(20, 184, 166, 0.3); }
+        .metric-pink .metric-icon-box { background: rgba(236, 72, 153, 0.15); color: #ec4899; border: 1px solid rgba(236, 72, 153, 0.3); }
+        .metric-amber .metric-icon-box { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+        .dashboard-grid .panel {
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.05);
+          background: linear-gradient(145deg, rgba(2, 44, 34, 0.5) 0%, rgba(1, 21, 15, 0.8) 100%);
+        }
+      `}</style>
+
+      {/* Welcome Banner */}
+      <div className="welcome-banner">
+        <div>
+          <h1 className="welcome-title">Command Center</h1>
+          <p className="welcome-subtitle">Here's your operational overview for today.</p>
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button className="btn btn-primary" onClick={fetchDashboardData} disabled={loading}>
+            <span className="material-symbols-rounded" style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>sync</span>
+            Refresh Data
+          </button>
+        </div>
+      </div>
+
       {/* Metrics Grid */}
-      <div className="metrics-grid">
+      <div className="metrics-grid" style={{ marginBottom: '30px' }}>
         <div className="panel metric-card metric-blue">
           <div className="metric-icon-box">
-            <span className="material-symbols-rounded">home_repair_service</span>
+            <span className="material-symbols-rounded">domain</span>
           </div>
           <div className="metric-info">
             <span className="metric-label">Total Assets</span>
@@ -75,7 +172,7 @@ export default function Dashboard() {
             <span className="material-symbols-rounded">pending_actions</span>
           </div>
           <div className="metric-info">
-            <span className="metric-label">Pending Tickets</span>
+            <span className="metric-label">Active Tickets</span>
             <span className="metric-value">{loading ? '...' : metrics.pendingTickets}</span>
           </div>
         </div>
@@ -84,8 +181,8 @@ export default function Dashboard() {
             <span className="material-symbols-rounded">warning</span>
           </div>
           <div className="metric-info">
-            <span className="metric-label">Low Stock Parts</span>
-            <span className="metric-value">{MOCK_INVENTORY.filter(item => item.status === 'Low Stock' || item.status === 'Out of Stock').length}</span>
+            <span className="metric-label">Low Stock Alerts</span>
+            <span className="metric-value">{loading ? '...' : metrics.lowStockCount}</span>
           </div>
         </div>
         <div className="panel metric-card metric-amber">
@@ -94,20 +191,17 @@ export default function Dashboard() {
           </div>
           <div className="metric-info">
             <span className="metric-label">Maintenance Cost</span>
-            <span className="metric-value">₹{loading ? '...' : metrics.maintenanceCost}</span>
+            <span className="metric-value">₹{loading ? '...' : metrics.maintenanceCost.toLocaleString()}</span>
           </div>
         </div>
       </div>
 
       {/* Two Column Details */}
-      <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+      <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
         {/* Urgent / In Progress Tickets */}
         <div className="panel">
-          <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+          <div className="table-header" style={{ marginBottom: '20px' }}>
             <h2 className="table-title">Active Maintenance Schedules</h2>
-            <button className="btn btn-secondary" onClick={fetchDashboardData}>
-              <span className="material-symbols-rounded">refresh</span> Sync
-            </button>
           </div>
           <div className="table-container">
             <table className="custom-table" id="dashboardTicketsTable">
@@ -130,16 +224,20 @@ export default function Dashboard() {
                 ) : schedules.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="empty-state">
-                      <span className="material-symbols-rounded empty-state-icon" style={{ fontSize: '2.5rem' }}>check_circle</span>
+                      <span className="material-symbols-rounded empty-state-icon" style={{ fontSize: '2.5rem', color: 'var(--success)' }}>check_circle</span>
                       <div className="empty-state-title">No active maintenance tasks!</div>
                     </td>
                   </tr>
                 ) : (
                   schedules.map(schedule => (
                     <tr key={schedule.id}>
-                      <td>{schedule.assets?.name || 'Unknown Asset'}</td>
-                      <td>{schedule.type}</td>
-                      <td>{new Date(schedule.scheduled_date).toLocaleDateString()}</td>
+                      <td style={{ fontWeight: 500 }}>{schedule.assets?.name || 'Unknown Asset'}</td>
+                      <td>
+                        <span style={{ color: schedule.type === 'Corrective' ? 'var(--danger)' : 'var(--primary)', fontSize: '0.9rem' }}>
+                          {schedule.type}
+                        </span>
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)' }}>{new Date(schedule.scheduled_date).toLocaleDateString()}</td>
                       <td>
                         <span className={`status-badge ${schedule.status?.toLowerCase().replace(' ', '-')}`}>
                           {schedule.status}
@@ -155,7 +253,7 @@ export default function Dashboard() {
 
         {/* Low Stock Alerts Panel */}
         <div className="panel">
-          <div className="table-header">
+          <div className="table-header" style={{ marginBottom: '20px' }}>
             <h2 className="table-title">Parts to Reorder</h2>
           </div>
           <div className="table-container">
@@ -167,22 +265,38 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_INVENTORY.filter(item => item.status === 'Low Stock' || item.status === 'Out of Stock').map(item => (
-                  <tr key={item.id}>
-                    <td style={{ fontWeight: 500 }}>{item.name}</td>
-                    <td>
-                      <span style={{ 
-                        padding: '4px 8px', 
-                        background: item.status === 'Out of Stock' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                        color: item.status === 'Out of Stock' ? 'var(--danger)' : 'var(--warning)',
-                        borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600,
-                        border: `1px solid ${item.status === 'Out of Stock' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`
-                      }}>
-                        {item.stock} {item.status === 'Out of Stock' ? '(Empty)' : '(Low)'}
-                      </span>
+                {loading ? (
+                   <tr>
+                    <td colSpan={2} className="empty-state">
+                      <span className="material-symbols-rounded empty-state-icon">sync</span>
+                      <div className="empty-state-title">Loading...</div>
                     </td>
                   </tr>
-                ))}
+                ) : lowStockList.length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className="empty-state" style={{ padding: '30px 10px' }}>
+                      <span className="material-symbols-rounded empty-state-icon" style={{ fontSize: '2.5rem', color: 'var(--success)' }}>inventory_2</span>
+                      <div className="empty-state-title">Inventory is healthy!</div>
+                    </td>
+                  </tr>
+                ) : (
+                  lowStockList.map(item => (
+                    <tr key={item.id}>
+                      <td style={{ fontWeight: 500 }}>{item.part_name}</td>
+                      <td>
+                        <span style={{ 
+                          padding: '4px 8px', 
+                          background: item.quantity === 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                          color: item.quantity === 0 ? 'var(--danger)' : 'var(--warning)',
+                          borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600,
+                          border: `1px solid ${item.quantity === 0 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`
+                        }}>
+                          {item.quantity} {item.quantity === 0 ? '(Empty)' : '(Low)'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
